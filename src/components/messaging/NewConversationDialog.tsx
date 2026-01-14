@@ -16,12 +16,17 @@ import { useConversations } from '@/hooks/useConversations'
 import { resolveAddressOrENS, isENSName } from '@/lib/ens'
 import { isAddress } from 'viem'
 import {
-  Plus,
+  MessageSquarePlus,
   Loader2,
   CheckCircle2,
   XCircle,
   AlertCircle,
 } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
 type ReachabilityStatus = 'idle' | 'checking' | 'reachable' | 'unreachable' | 'error'
@@ -40,7 +45,7 @@ export function NewConversationDialog() {
   const { checkCanMessage } = useCanMessage()
   const { getInboxId } = useGetInboxId()
   const { createDm } = useCreateDm()
-  const { selectConversation, setPeerAddress } = useMessaging()
+  const { selectConversation, setConversationType, setPeerAddress, setPeerAddresses } = useMessaging()
   const { refresh } = useConversations()
 
   const resetState = () => {
@@ -126,7 +131,9 @@ export function NewConversationDialog() {
 
       // Select the conversation
       selectConversation(dm)
+      setConversationType('dm')
       setPeerAddress(resolvedAddress)
+      setPeerAddresses([resolvedAddress])
 
       // Refresh conversation list
       await refresh()
@@ -150,12 +157,16 @@ export function NewConversationDialog() {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
-          <Plus className="h-4 w-4" />
-          New Chat
-        </Button>
-      </DialogTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="icon" className="h-8 w-8">
+              <MessageSquarePlus className="h-4 w-4" />
+            </Button>
+          </DialogTrigger>
+        </TooltipTrigger>
+        <TooltipContent>New Chat</TooltipContent>
+      </Tooltip>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>New Conversation</DialogTitle>

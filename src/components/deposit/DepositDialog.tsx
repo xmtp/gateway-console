@@ -212,9 +212,14 @@ export function DepositDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" disabled={!isConnected || !hasPayerAddress}>
-          <ArrowDownToLine className="mr-2 h-4 w-4" />
-          Deposit Funds
+        <Button
+          variant="outline"
+          disabled={!isConnected || !hasPayerAddress}
+          size="sm"
+          className="w-full h-8 text-xs border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
+        >
+          <ArrowDownToLine className="h-3.5 w-3.5 mr-1.5" />
+          Deposit to App
         </Button>
       </DialogTrigger>
       <DialogContent>

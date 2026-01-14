@@ -1,5 +1,6 @@
 import { useConnect } from 'wagmi'
 import { Button } from '@/components/ui/button'
+import { Wallet } from 'lucide-react'
 
 export function ConnectWallet() {
   const { connect, connectors, isPending } = useConnect()
@@ -14,21 +15,28 @@ export function ConnectWallet() {
         <Button
           onClick={() => connect({ connector: injectedConnector })}
           disabled={isPending}
+          size="sm"
+          className="flex-1 h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
         >
-          {isPending ? 'Connecting...' : 'MetaMask'}
+          <Wallet className="h-3.5 w-3.5 mr-1.5" />
+          {isPending ? 'Connecting...' : 'Connect'}
         </Button>
       )}
-      {walletConnectConnector && (
+      {walletConnectConnector && !injectedConnector && (
         <Button
           variant="outline"
           onClick={() => connect({ connector: walletConnectConnector })}
           disabled={isPending}
+          size="sm"
+          className="flex-1 h-8 text-xs border-zinc-700 text-zinc-300 hover:bg-zinc-800"
         >
           WalletConnect
         </Button>
       )}
       {!injectedConnector && !walletConnectConnector && (
-        <Button disabled>No Wallet Found</Button>
+        <Button disabled size="sm" className="w-full h-8 text-xs">
+          No Wallet Found
+        </Button>
       )}
     </div>
   )

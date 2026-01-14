@@ -19,13 +19,11 @@ export function UserList() {
   }, [activeUser, xmtpActiveUserId, initializeClient, disconnect])
 
   return (
-    <div className="w-64 border-r h-full p-4 flex flex-col gap-4">
-      <h2 className="font-semibold text-lg">Users</h2>
-
-      <div className="flex-1 space-y-2 overflow-auto">
+    <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 p-3 space-y-1.5 overflow-auto">
         {users.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No users yet. Create one to start messaging.
+          <p className="text-xs text-zinc-500 font-mono py-2">
+            No users yet
           </p>
         ) : (
           users.map((user) => (
@@ -40,9 +38,11 @@ export function UserList() {
         )}
       </div>
 
-      <AddUserDialog onAddUser={createUser} />
+      <div className="px-3 pb-3">
+        <AddUserDialog onAddUser={createUser} />
+      </div>
 
-      <div className="pt-2 border-t">
+      <div className="px-3 py-2 border-t border-zinc-800">
         <XMTPStatus />
       </div>
     </div>

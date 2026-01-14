@@ -16,6 +16,8 @@ interface MessagingContextValue {
   setConversationType: (type: 'dm' | 'group' | null) => void
   peerAddress: string | null
   setPeerAddress: (address: string | null) => void
+  peerAddresses: string[]
+  setPeerAddresses: (addresses: string[]) => void
   groupName: string | null
   setGroupName: (name: string | null) => void
 }
@@ -30,6 +32,7 @@ export function MessagingProvider({ children }: MessagingProviderProps) {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
   const [conversationType, setConversationType] = useState<'dm' | 'group' | null>(null)
   const [peerAddress, setPeerAddress] = useState<string | null>(null)
+  const [peerAddresses, setPeerAddresses] = useState<string[]>([])
   const [groupName, setGroupName] = useState<string | null>(null)
 
   return (
@@ -41,6 +44,8 @@ export function MessagingProvider({ children }: MessagingProviderProps) {
         setConversationType,
         peerAddress,
         setPeerAddress,
+        peerAddresses,
+        setPeerAddresses,
         groupName,
         setGroupName,
       }}

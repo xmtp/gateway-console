@@ -12,6 +12,13 @@ function truncateAddress(address: string | null): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
 
+function formatPeerAddresses(addresses: string[]): string {
+  if (addresses.length === 0) return 'Unknown'
+  if (addresses.length === 1) return truncateAddress(addresses[0])
+  // Show all addresses truncated
+  return addresses.map(truncateAddress).join(' / ')
+}
+
 function truncateInboxId(inboxId: string): string {
   return `${inboxId.slice(0, 6)}...${inboxId.slice(-4)}`
 }
@@ -28,7 +35,25 @@ interface MessageBubbleProps {
 }
 
 function MessageBubble({ message, isOwn, showSender = false }: MessageBubbleProps) {
-  const content = message.content as string
+  // XMTP messages can have different content types
+  // Only render text messages - skip system messages like GroupUpdated
+  const content = message.content
+
+  // Handle non-text content types (GroupUpdated, etc.)
+  if (typeof content !== 'string') {
+    // Check if it's a group update message
+    if (content && typeof content === 'object' && 'initiatedByInboxId' in content) {
+      return (
+        <div className="flex justify-center py-2">
+          <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">
+            Group updated
+          </span>
+        </div>
+      )
+    }
+    // Skip other non-text content types
+    return null
+  }
 
   return (
     <div
@@ -61,7 +86,7 @@ function MessageBubble({ message, isOwn, showSender = false }: MessageBubbleProp
 
 export function MessageThread() {
   const { inboxId } = useXMTP()
-  const { selectedConversation, conversationType, peerAddress, groupName } = useMessaging()
+  const { selectedConversation, conversationType, peerAddresses, groupName } = useMessaging()
   const { messages, isLoading } = useMessages(selectedConversation)
   const scrollRef = useRef<HTMLDivElement>(null)
   const isGroup = conversationType === 'group'
@@ -105,7 +130,7 @@ export function MessageThread() {
           <>
             <MessageSquare className="h-4 w-4 text-primary" />
             <span className="font-medium text-sm">
-              {truncateAddress(peerAddress)}
+              {formatPeerAddresses(peerAddresses)}
             </span>
           </>
         )}

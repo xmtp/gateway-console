@@ -1,42 +1,42 @@
 import { useXMTP } from '@/contexts'
-import { Loader2, CheckCircle2, XCircle, Radio } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 export function XMTPStatus() {
   const { client, isConnecting, error, inboxId } = useXMTP()
 
   if (isConnecting) {
     return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        <span>Connecting to XMTP...</span>
+      <div className="flex items-center gap-2">
+        <Loader2 className="h-3 w-3 animate-spin text-zinc-500" />
+        <span className="text-xs text-zinc-500 font-mono">Connecting...</span>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="flex items-center gap-2 text-sm text-destructive">
-        <XCircle className="h-4 w-4" />
-        <span title={error.message}>Connection failed</span>
+      <div className="flex items-center gap-2">
+        <div className="w-2 h-2 rounded-full bg-red-500" />
+        <span className="text-xs text-red-400 font-mono" title={error.message}>
+          Disconnected
+        </span>
       </div>
     )
   }
 
   if (client && inboxId) {
     return (
-      <div className="flex items-center gap-2 text-sm text-green-600">
-        <CheckCircle2 className="h-4 w-4" />
-        <span className="truncate" title={inboxId}>
-          Connected
-        </span>
+      <div className="flex items-center gap-2">
+        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+        <span className="text-xs text-emerald-400 font-mono">XMTP Connected</span>
       </div>
     )
   }
 
   return (
-    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-      <Radio className="h-4 w-4" />
-      <span>Select a user to connect</span>
+    <div className="flex items-center gap-2">
+      <div className="w-2 h-2 rounded-full bg-zinc-600" />
+      <span className="text-xs text-zinc-500 font-mono">No user selected</span>
     </div>
   )
 }

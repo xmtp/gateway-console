@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { UserPlus } from 'lucide-react'
 
 interface AddUserDialogProps {
   onAddUser: (name: string) => void
@@ -29,8 +30,13 @@ export function AddUserDialog({ onAddUser }: AddUserDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="w-full">
-          + Add User
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full h-8 text-xs border-zinc-700 border-dashed text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 hover:border-zinc-600"
+        >
+          <UserPlus className="h-3.5 w-3.5 mr-1.5" />
+          Add User
         </Button>
       </DialogTrigger>
       <DialogContent>

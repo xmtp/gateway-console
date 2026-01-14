@@ -20,7 +20,8 @@ export interface ConversationData {
   type: 'dm' | 'group'
   name: string | null
   peerInboxId: string | null // For DMs
-  peerAddress: string | null // For DMs
+  peerAddress: string | null // For DMs - primary address
+  peerAddresses: string[] // For DMs - all linked addresses
   memberCount: number // For groups
   lastMessage: string | null
   lastMessageTime: Date | null
@@ -177,12 +178,18 @@ export function useConversations() {
           const messages = await dm.messages({ limit: 1n })
           const lastMsg = messages[0]
 
+          // Get all Ethereum addresses for the peer
+          const peerAddresses = peer?.accountIdentifiers
+            ?.filter(id => id.identifierKind === IdentifierKind.Ethereum)
+            ?.map(id => id.identifier) ?? []
+
           return {
             id: dm.id,
             type: 'dm' as const,
             name: null,
             peerInboxId: peer?.inboxId ?? null,
-            peerAddress: peer?.accountIdentifiers[0]?.identifier ?? null,
+            peerAddress: peerAddresses[0] ?? null,
+            peerAddresses,
             memberCount: 2,
             lastMessage: typeof lastMsg?.content === 'string' ? lastMsg.content : null,
             lastMessageTime: lastMsg?.sentAtNs ? new Date(Number(lastMsg.sentAtNs) / 1_000_000) : null,
@@ -204,6 +211,7 @@ export function useConversations() {
             name: group.name ?? null,
             peerInboxId: null,
             peerAddress: null,
+            peerAddresses: [],
             memberCount: members.length,
             lastMessage: typeof lastMsg?.content === 'string' ? lastMsg.content : null,
             lastMessageTime: lastMsg?.sentAtNs ? new Date(Number(lastMsg.sentAtNs) / 1_000_000) : null,
@@ -366,7 +374,13 @@ export function useMessages(conversation: Conversation | null) {
         streamRef.current = stream
 
         for await (const message of stream) {
-          setMessages(prev => [...prev, message])
+          // Deduplicate - only add if message doesn't already exist
+          setMessages(prev => {
+            if (prev.some(m => m.id === message.id)) {
+              return prev
+            }
+            return [...prev, message]
+          })
         }
       } catch (e) {
         console.error('Message stream error:', e)

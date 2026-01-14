@@ -4,15 +4,18 @@ import './index.css'
 import App from './App.tsx'
 import { WalletProvider } from './components/wallet'
 import { XMTPProvider, MessagingProvider } from './contexts'
+import { TooltipProvider } from './components/ui/tooltip'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <WalletProvider>
-      <XMTPProvider>
-        <MessagingProvider>
-          <App />
-        </MessagingProvider>
-      </XMTPProvider>
-    </WalletProvider>
+    <TooltipProvider>
+      <WalletProvider>
+        <XMTPProvider>
+          <MessagingProvider>
+            <App />
+          </MessagingProvider>
+        </XMTPProvider>
+      </WalletProvider>
+    </TooltipProvider>
   </StrictMode>,
 )

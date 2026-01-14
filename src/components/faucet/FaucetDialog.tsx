@@ -151,8 +151,14 @@ export function FaucetDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" disabled={!isConnected}>
-          Get Test Funds
+        <Button
+          variant="outline"
+          disabled={!isConnected}
+          size="sm"
+          className="w-full h-8 text-xs border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
+        >
+          <Coins className="h-3.5 w-3.5 mr-1.5" />
+          Get Test mUSD
         </Button>
       </DialogTrigger>
       <DialogContent>

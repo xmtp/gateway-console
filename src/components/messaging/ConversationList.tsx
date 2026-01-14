@@ -11,6 +11,13 @@ function truncateAddress(address: string | null): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
 
+function formatPeerAddresses(addresses: string[]): string {
+  if (addresses.length === 0) return 'Unknown'
+  if (addresses.length === 1) return truncateAddress(addresses[0])
+  // Show first address + count of others
+  return `${truncateAddress(addresses[0])} +${addresses.length - 1}`
+}
+
 function formatTime(date: Date | null): string {
   if (!date) return ''
   const now = new Date()
@@ -57,7 +64,7 @@ function ConversationItem({ conversation, isSelected, onSelect }: ConversationIt
             <span className="font-medium text-sm truncate">
               {isGroup
                 ? (conversation.name || 'Unnamed Group')
-                : truncateAddress(conversation.peerAddress)}
+                : formatPeerAddresses(conversation.peerAddresses)}
             </span>
             <span className="text-xs text-muted-foreground flex-shrink-0">
               {formatTime(conversation.lastMessageTime)}
@@ -89,6 +96,7 @@ export function ConversationList() {
     selectConversation,
     setConversationType,
     setPeerAddress,
+    setPeerAddresses,
     setGroupName,
   } = useMessaging()
 
@@ -113,9 +121,11 @@ export function ConversationList() {
     setConversationType(conv.type)
     if (conv.type === 'dm') {
       setPeerAddress(conv.peerAddress)
+      setPeerAddresses(conv.peerAddresses)
       setGroupName(null)
     } else {
       setPeerAddress(null)
+      setPeerAddresses([])
       setGroupName(conv.name)
     }
   }
