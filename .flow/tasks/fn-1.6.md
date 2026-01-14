@@ -72,8 +72,16 @@ const [users, setUsers] = useLocalStorage<EphemeralUser[]>({
 - [ ] Shows user address (truncated)
 - [ ] Generates unique avatar per user
 ## Done summary
-TBD
+Implemented ephemeral user management with browser-generated keys.
 
+Key accomplishments:
+- Created EphemeralUser type with UUID, name, privateKey, address, createdAt
+- Created useUsers hook with localStorage persistence via @mantine/hooks
+- Created UserCard component with avatar, name, address, delete
+- Created AddUserDialog for creating new users
+- Created UserList sidebar component
+- UUID-based user IDs ensure OPFS isolation
+- Auto-select first created user
 ## Evidence
 - Commits:
 - Tests:
