@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -34,6 +34,9 @@ export function NewConversationDialog() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isStarting, setIsStarting] = useState(false)
 
+  // Track latest request to prevent race conditions
+  const requestIdRef = useRef(0)
+
   const { checkCanMessage } = useCanMessage()
   const { getInboxId } = useGetInboxId()
   const { createDm } = useCreateDm()
@@ -58,11 +61,17 @@ export function NewConversationDialog() {
 
     // Check if it's a valid address or ENS
     if (isAddress(value) || isENSName(value)) {
+      // Increment request ID to track this specific request
+      const currentRequestId = ++requestIdRef.current
       setStatus('checking')
 
       try {
         // Resolve address if ENS
         const address = await resolveAddressOrENS(value)
+
+        // Ignore result if a newer request was made
+        if (currentRequestId !== requestIdRef.current) return
+
         if (!address) {
           setStatus('error')
           setErrorMessage(isENSName(value) ? 'ENS name not found' : 'Invalid address')
@@ -73,6 +82,10 @@ export function NewConversationDialog() {
 
         // Check reachability on XMTP
         const canMessage = await checkCanMessage(address)
+
+        // Ignore result if a newer request was made
+        if (currentRequestId !== requestIdRef.current) return
+
         if (canMessage) {
           setStatus('reachable')
         } else {
@@ -80,6 +93,8 @@ export function NewConversationDialog() {
           setErrorMessage('This address is not on XMTP')
         }
       } catch {
+        // Ignore errors from stale requests
+        if (currentRequestId !== requestIdRef.current) return
         setStatus('error')
         setErrorMessage('Failed to check address')
       }
