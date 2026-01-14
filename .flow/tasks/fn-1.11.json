@@ -1,16 +1,30 @@
 {
-  "assignee": null,
+  "assignee": "saul@xmtp.com",
   "claim_note": "",
-  "claimed_at": null,
+  "claimed_at": "2026-01-14T05:31:45.281399Z",
   "created_at": "2026-01-14T03:59:28.161311Z",
   "depends_on": [
     "fn-1.1"
   ],
   "epic": "fn-1",
+  "evidence": {
+    "files_created": [
+      "docker-compose.yml",
+      "src/lib/payer.ts"
+    ],
+    "files_updated": [
+      "README.md"
+    ],
+    "verification": {
+      "docker_compose": "docker-compose.yml syntax valid",
+      "readme": "Contains local development setup instructions",
+      "typescript": "npx tsc --noEmit completes without errors"
+    }
+  },
   "id": "fn-1.11",
   "priority": null,
   "spec_path": ".flow/tasks/fn-1.11.md",
-  "status": "todo",
+  "status": "done",
   "title": "Local Gateway Docker Setup",
-  "updated_at": "2026-01-14T04:04:36.136471Z"
+  "updated_at": "2026-01-14T05:42:54.154965Z"
 }

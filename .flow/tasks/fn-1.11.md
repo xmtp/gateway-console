@@ -74,8 +74,14 @@ This address should be displayed in the app and is where deposits are sent.
 - [ ] README documents local development setup
 
 ## Done summary
-TBD
+Set up local Gateway Service for development with Docker Compose.
 
+Key accomplishments:
+- Created docker-compose.yml with xmtp/xmtpd-gateway:main image
+- Created src/lib/payer.ts with payer address derivation utility
+- Updated README with comprehensive local development setup
+- Documented environment variables and commands
+- Gateway configured for ports 5050 (gRPC) and 5055 (HTTP)
 ## Evidence
 - Commits:
 - Tests:

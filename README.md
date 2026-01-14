@@ -1,73 +1,113 @@
-# React + TypeScript + Vite
+# Message With Tokens
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A demo web app that teaches developers how XMTP messaging fees work by letting them experience the system firsthand.
 
-Currently, two official plugins are available:
+## Quick Start
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Prerequisites
 
-## React Compiler
+- Node.js 20.19+ or 22.12+
+- Docker (for running the XMTP Gateway)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 1. Install dependencies
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 2. Set up environment
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+cp .env.example .env.local
 ```
+
+Generate a payer private key for local development:
+
+```bash
+# Using cast (from foundry)
+cast wallet new
+
+# Or use any Ethereum wallet generator
+```
+
+Edit `.env.local` and set:
+- `PAYER_PRIVATE_KEY` - Your generated private key
+- `VITE_GATEWAY_PAYER_ADDRESS` - The address derived from your private key
+
+### 3. Start the Gateway
+
+```bash
+docker-compose up -d
+```
+
+This runs the XMTP Gateway on `http://localhost:5050`.
+
+### 4. Start the frontend
+
+```bash
+npm run dev
+```
+
+Open http://localhost:5173 to see the app.
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Local Dev                             │
+│  ┌──────────────────────┐    ┌────────────────────────────┐ │
+│  │   Frontend (Vite)    │    │   Gateway Service          │ │
+│  │   localhost:5173     │───▶│   localhost:5050           │ │
+│  │                      │    │   (Docker)                 │ │
+│  └──────────────────────┘    └────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run preview` | Preview production build |
+| `docker-compose up -d` | Start gateway in background |
+| `docker-compose down` | Stop gateway |
+| `docker-compose logs -f` | View gateway logs |
+
+## Environment Variables
+
+See `.env.example` for all available environment variables.
+
+### Frontend (Vite)
+
+| Variable | Description |
+|----------|-------------|
+| `VITE_GATEWAY_URL` | XMTP Gateway URL |
+| `VITE_GATEWAY_PAYER_ADDRESS` | Address that pays for messages |
+| `VITE_SETTLEMENT_CHAIN_RPC_URL` | Base Sepolia RPC |
+| `VITE_MAINNET_RPC_URL` | Mainnet RPC (for ENS) |
+| `VITE_WALLETCONNECT_PROJECT_ID` | WalletConnect project ID |
+
+### Gateway (Docker)
+
+| Variable | Description |
+|----------|-------------|
+| `PAYER_PRIVATE_KEY` | Private key for the payer wallet |
+
+## How Messaging Fees Work
+
+1. **Apps pay, not users** - The gateway's payer wallet pays for all messages
+2. **Deposit to fund** - Deposit mUSD to the payer's balance in PayerRegistry
+3. **Per-message costs** - Each message costs based on payload size
+4. **Shared balance** - Multiple users can send from the same payer balance
+
+Fee formula:
+```
+cost = (messageFee + storageFee × bytes × days) × gasOverhead
+```
+
+Current testnet values:
+- Base fee: ~$0.0000385 per message
+- Storage: 22 picodollars per byte per day
+- Default retention: 60 days
+- Gas overhead: 1.25x
