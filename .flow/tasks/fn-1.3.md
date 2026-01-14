@@ -51,8 +51,15 @@ writeContract({
 - [ ] Updates mUSD balance after successful mint
 - [ ] Handles transaction rejection gracefully
 ## Done summary
-TBD
+Implemented mUSD faucet integration with rate limiting.
 
+Key accomplishments:
+- Created MockUnderlyingFeeToken ABI (simplified for mint/balanceOf)
+- Created useMintMusd hook with wagmi useWriteContract
+- 2-hour rate limiting with localStorage persistence
+- FaucetDialog with states: ready, pending, confirming, success, rate limited, error
+- Network switching support for Base Sepolia
+- Integrated into main App UI
 ## Evidence
 - Commits:
 - Tests:

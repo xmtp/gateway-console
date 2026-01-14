@@ -1,6 +1,6 @@
-import { Button } from '@/components/ui/button'
 import { WalletButton } from '@/components/wallet'
 import { UserList } from '@/components/users'
+import { FaucetDialog } from '@/components/faucet'
 
 function App() {
   return (
@@ -22,7 +22,7 @@ function App() {
             Learn how XMTP messaging fees work
           </p>
           <div className="flex gap-2">
-            <Button variant="outline" disabled>Get Test Funds</Button>
+            <FaucetDialog />
           </div>
           <p className="text-sm text-muted-foreground mt-4">
             0 messages available
