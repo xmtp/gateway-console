@@ -62,8 +62,25 @@ const cost = calculateMessageCost(messageBytes, rates);
 - [ ] Balance/messages-available updates after sending
 - [ ] Cost display is subtle and non-intrusive
 ## Done summary
-TBD
+# fn-1.9: Message Cost Display
 
+Implemented real-time message cost display based on message size.
+
+## Files Created
+- `src/components/messaging/MessageCostBadge.tsx` - Cost display component with breakdown tooltip
+- `src/components/ui/tooltip.tsx` - Tooltip component from shadcn
+
+## Files Updated
+- `src/lib/messageCosting.ts` - Added calculateMessageCost, formatMicroCost, getMessageBytes
+- `src/components/messaging/MessageInput.tsx` - Added cost badge and balance refresh
+- `src/components/messaging/index.ts` - Export MessageCostBadge
+
+## Features
+- Shows estimated cost (~$0.00005) while typing message
+- Cost updates in real-time as message length changes
+- Tooltip shows cost breakdown (base fee + storage fee)
+- Balance refreshes after sending to update messages available
+- Uses actual message byte length for storage calculation
 ## Evidence
 - Commits:
 - Tests:
