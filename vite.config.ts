@@ -10,4 +10,10 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  optimizeDeps: {
+    exclude: ['@xmtp/browser-sdk'],
+  },
+  worker: {
+    format: 'es',
+  },
 })
