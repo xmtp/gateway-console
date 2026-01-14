@@ -1,16 +1,38 @@
 {
-  "assignee": null,
+  "assignee": "saul@xmtp.com",
   "claim_note": "",
-  "claimed_at": null,
+  "claimed_at": "2026-01-14T06:13:11.146519Z",
   "created_at": "2026-01-14T03:59:26.849403Z",
   "depends_on": [
     "fn-1.4"
   ],
   "epic": "fn-1",
+  "evidence": {
+    "build": {
+      "command": "npm run build",
+      "output": "built in 3.72s",
+      "result": "passed"
+    },
+    "files_created": [
+      "src/abi/PayerRegistry.ts",
+      "src/lib/messageCosting.ts",
+      "src/hooks/usePayerBalance.ts",
+      "src/components/balance/BalanceDisplay.tsx",
+      "src/components/balance/index.ts"
+    ],
+    "files_modified": [
+      "src/App.tsx"
+    ],
+    "typescript_check": {
+      "command": "npx tsc --noEmit",
+      "errors": 0,
+      "result": "passed"
+    }
+  },
   "id": "fn-1.5",
   "priority": null,
   "spec_path": ".flow/tasks/fn-1.5.md",
-  "status": "todo",
+  "status": "done",
   "title": "Balance Display & Messages Available",
-  "updated_at": "2026-01-14T04:04:33.765173Z"
+  "updated_at": "2026-01-14T06:18:31.175463Z"
 }

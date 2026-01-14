@@ -2,6 +2,7 @@ import { WalletButton } from '@/components/wallet'
 import { UserList } from '@/components/users'
 import { FaucetDialog } from '@/components/faucet'
 import { DepositDialog } from '@/components/deposit'
+import { BalanceDisplay } from '@/components/balance'
 
 function App() {
   return (
@@ -18,17 +19,19 @@ function App() {
         </header>
 
         {/* Content */}
-        <main className="flex-1 flex flex-col items-center justify-center gap-4 p-8">
+        <main className="flex-1 flex flex-col items-center justify-center gap-6 p-8">
           <p className="text-muted-foreground">
             Learn how XMTP messaging fees work
           </p>
+
+          {/* Balance Display */}
+          <BalanceDisplay />
+
+          {/* Action Buttons */}
           <div className="flex gap-2">
             <FaucetDialog />
             <DepositDialog />
           </div>
-          <p className="text-sm text-muted-foreground mt-4">
-            0 messages available
-          </p>
         </main>
       </div>
     </div>
