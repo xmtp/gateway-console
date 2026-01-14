@@ -111,3 +111,60 @@ Current testnet values:
 - Storage: 22 picodollars per byte per day
 - Default retention: 60 days
 - Gas overhead: 1.25x
+
+## Production Deployment (Railway)
+
+Deploy this app to Railway for production use.
+
+### Prerequisites
+
+- Railway account (https://railway.app)
+- GitHub repository connected to Railway
+- WalletConnect project ID
+
+### Deploy Frontend
+
+1. Create a new Railway project
+2. Click "New Service" → "GitHub Repo"
+3. Select this repository
+4. Railway will auto-detect the `railway.toml` config
+
+Set these environment variables:
+```bash
+VITE_GATEWAY_URL=https://<gateway-service>.railway.internal:5050
+VITE_SETTLEMENT_CHAIN_RPC_URL=https://sepolia.base.org
+VITE_APP_CHAIN_RPC_URL=https://xmtp-testnet.g.alchemy.com/public
+VITE_MAINNET_RPC_URL=https://eth.llamarpc.com
+VITE_WALLETCONNECT_PROJECT_ID=<your-project-id>
+VITE_GATEWAY_PAYER_ADDRESS=<your-payer-address>
+```
+
+### Deploy Gateway
+
+1. In the same Railway project, click "New Service" → "Docker Image"
+2. Enter: `xmtp/xmtpd-gateway:main`
+3. Set port to `5050`
+4. Enable internal networking
+
+Set these environment variables:
+```bash
+XMTPD_PAYER_PRIVATE_KEY=<your-payer-private-key>
+```
+
+### Fund the Production Payer
+
+1. Copy your payer address (derived from the private key)
+2. Get testnet ETH from a faucet (for gas)
+3. Use the app's Faucet feature to mint mUSD
+4. Deposit mUSD to fund messaging
+
+### Railway Files
+
+- `railway.toml` - Frontend deployment config
+- `docker-compose.yml` - Local development only
+
+### Internal Networking
+
+Railway provides internal networking between services. Use the internal URL for the gateway:
+- Internal: `https://<gateway-service>.railway.internal:5050`
+- Public (if exposed): `https://<gateway-service>.up.railway.app`

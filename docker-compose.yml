@@ -1,4 +1,8 @@
-version: '3.8'
+# Docker Compose for local development with XMTP Gateway
+# Usage: docker compose up gateway
+#
+# For Railway deployment, use the Docker image directly:
+#   xmtp/xmtpd-gateway:main
 
 services:
   gateway:

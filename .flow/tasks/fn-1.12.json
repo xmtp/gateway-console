@@ -1,16 +1,32 @@
 {
-  "assignee": null,
+  "assignee": "saul@xmtp.com",
   "claim_note": "",
-  "claimed_at": null,
+  "claimed_at": "2026-01-14T07:03:01.495979Z",
   "created_at": "2026-01-14T04:30:00.000000Z",
   "depends_on": [
     "fn-1.10"
   ],
   "epic": "fn-1",
+  "evidence": {
+    "build_passed": true,
+    "files_created": [
+      "railway.toml"
+    ],
+    "files_modified": [
+      "docker-compose.yml",
+      "README.md"
+    ],
+    "note": "Actual deployment requires Railway account and secrets. Configuration files and documentation provided.",
+    "tests_passed": true,
+    "verification": {
+      "production_build": "passed",
+      "typescript_check": "passed"
+    }
+  },
   "id": "fn-1.12",
   "priority": null,
   "spec_path": ".flow/tasks/fn-1.12.md",
-  "status": "todo",
+  "status": "done",
   "title": "Railway Deployment",
-  "updated_at": "2026-01-14T04:30:00.000000Z"
+  "updated_at": "2026-01-14T07:06:28.806606Z"
 }

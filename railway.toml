@@ -1,0 +1,11 @@
+# Railway deployment configuration for frontend service
+# See: https://docs.railway.app/reference/config-as-code
+
+[build]
+builder = "nixpacks"
+buildCommand = "npm install && npm run build"
+
+[deploy]
+startCommand = "npx serve dist -l ${PORT:-3000}"
+healthcheckPath = "/"
+healthcheckTimeout = 100

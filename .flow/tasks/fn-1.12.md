@@ -76,8 +76,36 @@ startCommand = "npx serve dist -l 3000"
 - [ ] README documents production deployment
 
 ## Done summary
-TBD
+# Task fn-1.12: Railway Deployment - Completed
 
+## Changes Made
+
+1. **Created railway.toml**:
+   - Nixpacks builder configuration
+   - Build command: npm install && npm run build
+   - Start command: npx serve dist
+   - Health check configuration
+
+2. **Updated docker-compose.yml**:
+   - Added documentation comments
+   - References for Railway Docker deployment
+
+3. **Updated README.md**:
+   - Added "Production Deployment (Railway)" section
+   - Frontend deployment instructions
+   - Gateway Docker image deployment
+   - Environment variable documentation
+   - Internal networking setup
+   - Payer funding instructions
+
+## Note
+
+Actual Railway deployment requires:
+- Railway account and project creation
+- Environment variables with secrets
+- GitHub repository connection
+
+This task provides all configuration and documentation needed for deployment.
 ## Evidence
 - Commits:
 - Tests:
