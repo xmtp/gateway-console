@@ -31,7 +31,7 @@ function DeveloperSidebar() {
       {/* Explainer */}
       <div className="p-3 border-b border-zinc-800/50">
         <p className="text-xs text-zinc-400 leading-relaxed">
-          XMTP uses an "apps pay" model—your app covers messaging costs, not your users. Fund your payer wallet, then send test messages to see fees in action.
+          XMTP uses an "apps pay" model—your app covers messaging costs, not your users. Connect your wallet, fund your app's payer wallet, then send test messages to see fees in action.
         </p>
       </div>
 
