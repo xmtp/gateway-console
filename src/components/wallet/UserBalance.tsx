@@ -33,11 +33,13 @@ export function UserBalance() {
   }
 
   const formattedBalance = balance
-    ? parseFloat(formatUnits(balance, TOKENS.underlyingFeeToken.decimals)).toLocaleString(undefined, {
+    ? new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
-      })
-    : '0.00'
+      }).format(parseFloat(formatUnits(balance, TOKENS.underlyingFeeToken.decimals)))
+    : '$0.00'
 
   return (
     <div className="flex items-center justify-between">

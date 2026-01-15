@@ -9,6 +9,13 @@ import { Loader2, MessageSquare, User, Users, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { DecodedMessage, Group } from '@xmtp/browser-sdk'
 import { GroupSettingsDialog } from './GroupSettingsDialog'
+import { getActualMessageSize, calculateMessageCost, formatMicroCost, getMessageBytes } from '@/lib/messageCosting'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 function truncateAddress(address: string | null): string {
   if (!address) return 'Unknown'
@@ -21,7 +28,7 @@ function truncateInboxId(inboxId: string): string {
 
 function formatMessageTime(nanos: bigint): string {
   const date = new Date(Number(nanos) / 1_000_000)
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }
 
 interface MessageBubbleProps {
@@ -99,6 +106,18 @@ function MessageBubble({ message, isOwn, showSender = false, senderName, memberN
   const content = message.content
   const isGroup = showSender // showSender is true for groups, false for DMs
 
+  // Calculate actual message cost for text messages
+  const messageCost = useMemo(() => {
+    if (typeof content !== 'string') return null
+    const textBytes = getMessageBytes(content)
+    const payloadSize = getActualMessageSize(message)
+    return {
+      ...calculateMessageCost(payloadSize),
+      textBytes,
+      payloadSize,
+    }
+  }, [message, content])
+
   // Handle non-text content types (GroupUpdated, etc.)
   if (typeof content !== 'string') {
     // Check if it's a group update message
@@ -119,10 +138,53 @@ function MessageBubble({ message, isOwn, showSender = false, senderName, memberN
     return null
   }
 
+  const costBadge = messageCost && (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="text-[10px] text-muted-foreground/40 tabular-nums cursor-help shrink-0">
+            {messageCost.formattedCost}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs">
+          <div className="space-y-1.5 text-xs">
+            <p className="font-medium">Message Cost</p>
+            <div className="space-y-0.5 text-muted-foreground">
+              <div className="flex justify-between gap-4">
+                <span>Text:</span>
+                <span>{messageCost.textBytes} bytes</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span>Protocol overhead:</span>
+                <span>{messageCost.payloadSize - messageCost.textBytes} bytes</span>
+              </div>
+              <div className="flex justify-between gap-4 pt-1 border-t border-white/10">
+                <span>Total payload:</span>
+                <span>{messageCost.payloadSize} bytes</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span>Base fee:</span>
+                <span>{formatMicroCost(messageCost.breakdown.messageFee)}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span>Storage (60 days):</span>
+                <span>{formatMicroCost(messageCost.breakdown.storageFee)}</span>
+              </div>
+              <div className="flex justify-between gap-4 pt-1 border-t border-white/10 font-medium text-white">
+                <span>Total:</span>
+                <span>{messageCost.formattedCost}</span>
+              </div>
+            </div>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
+
   return (
     <div
       className={cn(
-        'flex flex-col max-w-[70%] gap-1',
+        'flex flex-col gap-1 max-w-[70%]',
         isOwn ? 'items-end ml-auto' : 'items-start mr-auto'
       )}
     >
@@ -141,9 +203,12 @@ function MessageBubble({ message, isOwn, showSender = false, senderName, memberN
       >
         {content}
       </div>
-      <span className="text-xs text-muted-foreground px-1">
-        {formatMessageTime(message.sentAtNs)}
-      </span>
+      <div className={cn('flex flex-col px-1', isOwn ? 'items-end' : 'items-start')}>
+        <span className="text-xs text-muted-foreground">
+          {formatMessageTime(message.sentAtNs)}
+        </span>
+        {costBadge}
+      </div>
     </div>
   )
 }

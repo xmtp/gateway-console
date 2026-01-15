@@ -35,13 +35,19 @@ export function DepositDialog() {
   const hasPayerAddress = !!GATEWAY_PAYER_ADDRESS
 
   // Format balance for display
-  const formattedBalance = balance
-    ? formatUnits(balance, TOKENS.underlyingFeeToken.decimals)
-    : '0'
+  const rawBalance = balance
+    ? parseFloat(formatUnits(balance, TOKENS.underlyingFeeToken.decimals))
+    : 0
+  const formattedBalance = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(rawBalance)
 
   // Parse amount
   const parsedAmount = parseFloat(amount) || 0
-  const maxAmount = parseFloat(formattedBalance)
+  const maxAmount = rawBalance
   const isValidAmount = parsedAmount > 0 && parsedAmount <= maxAmount
 
   // Reset when dialog opens (only on open transition, not on status change)
@@ -58,7 +64,7 @@ export function DepositDialog() {
   }
 
   const handleMax = () => {
-    setAmount(formattedBalance)
+    setAmount(rawBalance.toString())
   }
 
   const handleSwitchNetwork = () => {
@@ -169,7 +175,7 @@ export function DepositDialog() {
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Amount</span>
             <span className="text-muted-foreground">
-              Balance: {formattedBalance} {TOKENS.underlyingFeeToken.displaySymbol}
+              Balance: {formattedBalance}
             </span>
           </div>
           <div className="flex gap-2">

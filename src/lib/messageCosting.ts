@@ -182,3 +182,210 @@ export function formatMicroCost(amount: number): string {
 export function getMessageBytes(text: string): number {
   return new TextEncoder().encode(text).length
 }
+
+// Overhead estimate for input field cost estimation (Goal B)
+// This is used when we only have the text being typed, not a full message
+export const ENCODING_OVERHEAD_BYTES = 248
+
+/**
+ * Estimate payload size for a message being typed (before sending)
+ * Uses a fixed overhead estimate since we don't have the full message structure yet
+ */
+export function estimatePayloadSize(text: string): number {
+  return getMessageBytes(text) + ENCODING_OVERHEAD_BYTES
+}
+
+/**
+ * Calculate actual payload size from a DecodedMessage
+ * Uses real field values to compute accurate size
+ */
+export function getActualMessageSize(message: {
+  id: string
+  content: unknown
+  contentType?: { authorityId: string; typeId: string; versionMajor: number; versionMinor: number }
+  conversationId: string
+  senderInboxId: string
+  sentAtNs: bigint
+}): number {
+  // Content bytes (only for string content)
+  const contentBytes = typeof message.content === 'string'
+    ? getMessageBytes(message.content)
+    : 0
+
+  // EncodedContent overhead
+  let encodedContentOverhead = 0
+
+  // ContentTypeId (nested message)
+  if (message.contentType) {
+    const contentTypeSize =
+      stringFieldSize(message.contentType.authorityId, 1) +
+      stringFieldSize(message.contentType.typeId, 2) +
+      1 + varintSize(message.contentType.versionMajor) +
+      1 + varintSize(message.contentType.versionMinor)
+    encodedContentOverhead += 1 + varintSize(contentTypeSize) + contentTypeSize
+  }
+
+  // Parameters (encoding: UTF-8 for text)
+  const paramsSize = stringFieldSize('encoding', 1) + stringFieldSize('UTF-8', 2)
+  encodedContentOverhead += 1 + varintSize(paramsSize) + paramsSize
+
+  // Content field tag + length
+  encodedContentOverhead += 1 + varintSize(contentBytes)
+
+  // Message envelope overhead (using actual values)
+  const messageEnvelopeOverhead =
+    stringFieldSize(message.id, 1) +
+    1 + 8 + // sentAtNs
+    stringFieldSize(message.conversationId, 3) +
+    stringFieldSize(message.senderInboxId, 4) +
+    2 // kind + deliveryStatus
+
+  // Encryption overhead (AES-GCM)
+  const encryptionOverhead = 28
+
+  return contentBytes + encodedContentOverhead + messageEnvelopeOverhead + encryptionOverhead
+}
+
+/**
+ * Estimate protobuf varint encoding size
+ */
+function varintSize(value: number): number {
+  if (value < 128) return 1
+  if (value < 16384) return 2
+  if (value < 2097152) return 3
+  if (value < 268435456) return 4
+  return 5
+}
+
+/**
+ * Estimate protobuf string/bytes field size (tag + length + data)
+ */
+function stringFieldSize(str: string, fieldNumber: number): number {
+  const bytes = new TextEncoder().encode(str).length
+  const tagSize = varintSize(fieldNumber << 3) // wire type 2 for length-delimited
+  const lengthSize = varintSize(bytes)
+  return tagSize + lengthSize + bytes
+}
+
+/**
+ * Measure the actual XMTP encoding overhead.
+ * Run this from the browser console to determine the overhead constant.
+ *
+ * Usage: window.measureEncodingOverhead()
+ */
+export async function measureEncodingOverhead(): Promise<void> {
+  const { encodeText } = await import('@xmtp/browser-sdk')
+
+  console.log('Analyzing XMTP EncodedContent structure...\n')
+
+  // Encode a sample message to inspect the structure
+  const sampleText = 'Hello, world!'
+  const encoded = await encodeText(sampleText)
+
+  console.log('EncodedContent structure:')
+  console.log('  type:', encoded.type)
+  console.log('  parameters:', encoded.parameters)
+  console.log('  fallback:', encoded.fallback)
+  console.log('  compression:', encoded.compression)
+  console.log('  content.length:', encoded.content.length)
+
+  // Estimate EncodedContent protobuf size
+  // Based on xmtp proto: https://github.com/xmtp/proto
+  // message EncodedContent {
+  //   ContentTypeId type = 1;
+  //   map<string, string> parameters = 2;
+  //   optional string fallback = 3;
+  //   optional Compression compression = 4;
+  //   bytes content = 5;
+  // }
+  // message ContentTypeId {
+  //   string authority_id = 1;
+  //   string type_id = 2;
+  //   uint32 version_major = 3;
+  //   uint32 version_minor = 4;
+  // }
+
+  let encodedContentOverhead = 0
+
+  // ContentTypeId overhead (nested message)
+  if (encoded.type) {
+    const contentTypeSize =
+      stringFieldSize(encoded.type.authorityId, 1) + // "xmtp.org"
+      stringFieldSize(encoded.type.typeId, 2) + // "text"
+      1 + varintSize(encoded.type.versionMajor) + // field 3
+      1 + varintSize(encoded.type.versionMinor) // field 4
+    // Nested message has tag + length prefix
+    encodedContentOverhead += 1 + varintSize(contentTypeSize) + contentTypeSize
+  }
+
+  // Parameters map overhead (usually empty for text)
+  const paramEntries = Object.entries(encoded.parameters || {})
+  for (const [key, value] of paramEntries) {
+    // Each map entry is a nested message with key=1, value=2
+    const entrySize = stringFieldSize(key, 1) + stringFieldSize(value, 2)
+    encodedContentOverhead += 1 + varintSize(entrySize) + entrySize
+  }
+
+  // Fallback field (if present)
+  if (encoded.fallback) {
+    encodedContentOverhead += stringFieldSize(encoded.fallback, 3)
+  }
+
+  // Compression field (if present) - usually 1 byte tag + 1 byte value
+  if (encoded.compression !== undefined) {
+    encodedContentOverhead += 2
+  }
+
+  // Content field tag + length (the actual content bytes are NOT overhead)
+  encodedContentOverhead += 1 + varintSize(encoded.content.length)
+
+  console.log('\n--- EncodedContent Overhead Estimate ---')
+  console.log(`  ContentTypeId + framing: ~${encodedContentOverhead} bytes`)
+
+  // Now estimate Message envelope overhead
+  // message Message {
+  //   string id = 1;  // UUID ~36 chars
+  //   int64 sent_at_ns = 2;  // 8 bytes max
+  //   string convo_id = 3;  // ~64 chars hex
+  //   string sender_inbox_id = 4;  // ~64 chars hex
+  //   EncodedContent content = 5;
+  //   GroupMessageKind kind = 6;  // 1 byte
+  //   DeliveryStatus delivery_status = 7;  // 1 byte
+  // }
+
+  const messageEnvelopeOverhead =
+    stringFieldSize('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', 1) + // id (~36 chars)
+    1 + 8 + // sent_at_ns (tag + fixed64 or varint)
+    stringFieldSize('x'.repeat(64), 3) + // convo_id
+    stringFieldSize('x'.repeat(64), 4) + // sender_inbox_id
+    2 // kind + delivery_status
+
+  console.log(`  Message envelope: ~${messageEnvelopeOverhead} bytes`)
+
+  // Encryption overhead (AES-GCM: 12-byte IV + 16-byte auth tag)
+  const encryptionOverhead = 12 + 16
+  console.log(`  Encryption (IV + auth tag): ~${encryptionOverhead} bytes`)
+
+  const totalOverhead = encodedContentOverhead + messageEnvelopeOverhead + encryptionOverhead
+  console.log(`\n  TOTAL ESTIMATED OVERHEAD: ~${totalOverhead} bytes`)
+
+  // Test with various message sizes
+  console.log('\n--- Size Estimates for Various Messages ---')
+  console.log('| Text Bytes | + Overhead | Total Est. |')
+  console.log('|------------|------------|------------|')
+
+  const testSizes = [0, 1, 10, 50, 100, 500, 1000]
+  for (const textBytes of testSizes) {
+    const total = textBytes + totalOverhead
+    console.log(
+      `| ${String(textBytes).padStart(10)} | ${String(totalOverhead).padStart(10)} | ${String(total).padStart(10)} |`
+    )
+  }
+
+  console.log(`\nRecommended ENCODING_OVERHEAD_BYTES constant: ${totalOverhead}`)
+}
+
+// Expose to window for console access
+if (typeof window !== 'undefined') {
+  ;(window as unknown as { measureEncodingOverhead: typeof measureEncodingOverhead }).measureEncodingOverhead = measureEncodingOverhead
+}
