@@ -228,7 +228,7 @@ export function DepositDialog() {
           variant="outline"
           disabled={!isConnected || !hasPayerAddress}
           size="sm"
-          className="w-full h-8 text-xs border-zinc-300 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 active:bg-zinc-200 disabled:text-zinc-400 disabled:border-zinc-200"
+          className="w-full text-xs border-zinc-300 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 active:bg-zinc-200 disabled:text-zinc-400 disabled:border-zinc-200 touch-manipulation"
         >
           <ArrowDownToLine className="h-3.5 w-3.5 mr-1.5" />
           Deposit to App

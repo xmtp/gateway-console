@@ -165,7 +165,7 @@ export function NewConversationDialog() {
       <Tooltip>
         <TooltipTrigger asChild>
           <ResponsiveDialogTrigger asChild>
-            <Button variant="outline" size="icon" className="h-8 w-8">
+            <Button variant="outline" size="icon" className="touch-manipulation">
               <MessageSquarePlus className="h-4 w-4" />
             </Button>
           </ResponsiveDialogTrigger>

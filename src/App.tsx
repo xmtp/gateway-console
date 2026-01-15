@@ -124,7 +124,10 @@ function AppContent() {
   )
 
   return (
-    <div className={cn("min-h-screen flex flex-col bg-black", isMobile && "pt-14")}>
+    <div
+      className="min-h-screen flex flex-col bg-black"
+      style={isMobile ? { paddingTop: 'var(--mobile-header-height)' } : undefined}
+    >
       {/* Mobile Header - fixed position, conditionally rendered via isMobile */}
       <MobileHeader menuContent={<DeveloperSidebar />} title={getMobileTitle()} />
 

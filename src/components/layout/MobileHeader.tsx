@@ -47,8 +47,8 @@ export function MobileHeader({ menuContent, title: titleProp }: MobileHeaderProp
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-50 grid grid-cols-[auto,1fr,auto] items-center h-14 px-3 bg-zinc-950 border-b border-zinc-800/50"
-      style={{ paddingTop: 'var(--safe-area-inset-top)' }}
+      className="fixed top-0 left-0 right-0 z-50 grid grid-cols-[auto,1fr,auto] items-center px-3 bg-zinc-950 border-b border-zinc-800/50"
+      style={{ height: 'var(--mobile-header-height)', paddingTop: 'var(--safe-area-inset-top)' }}
     >
       {/* Left section: Back button (chat) or Menu button (conversations/settings) */}
       {showBackButton ? (
@@ -73,7 +73,7 @@ export function MobileHeader({ menuContent, title: titleProp }: MobileHeaderProp
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-72 p-0 bg-zinc-950 border-zinc-800" style={{ paddingTop: 'var(--safe-area-inset-top)' }}>
+          <SheetContent side="left" className="w-72 p-0 bg-zinc-950 border-zinc-800">
             {sheetContent}
           </SheetContent>
         </Sheet>
@@ -99,7 +99,7 @@ export function MobileHeader({ menuContent, title: titleProp }: MobileHeaderProp
             <Menu className="h-5 w-5" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="right" className="w-72 p-0 bg-zinc-950 border-zinc-800" style={{ paddingTop: 'var(--safe-area-inset-top)' }}>
+        <SheetContent side="right" className="w-72 p-0 bg-zinc-950 border-zinc-800">
           {sheetContent}
         </SheetContent>
       </Sheet>

@@ -80,7 +80,12 @@ function ResponsiveDialogContent({
         className={cn("max-h-[90vh] overflow-y-auto", className)}
         {...props}
       >
-        <div className="overflow-y-auto p-4 pb-safe">{children}</div>
+        <div
+          className="overflow-y-auto p-4"
+          style={{ paddingBottom: "calc(1rem + var(--safe-area-inset-bottom))" }}
+        >
+          {children}
+        </div>
       </DrawerContent>
     )
   }

@@ -50,6 +50,15 @@ function SheetContent({
 }: React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
 }) {
+  // Determine safe area padding based on side
+  const safeAreaStyle = {
+    ...(side === "left" || side === "right"
+      ? { paddingTop: "var(--safe-area-inset-top)", paddingBottom: "var(--safe-area-inset-bottom)" }
+      : {}),
+    ...(side === "top" ? { paddingTop: "var(--safe-area-inset-top)" } : {}),
+    ...(side === "bottom" ? { paddingBottom: "var(--safe-area-inset-bottom)" } : {}),
+  }
+
   return (
     <SheetPortal>
       <SheetOverlay />
@@ -67,12 +76,14 @@ function SheetContent({
             "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto border-t",
           className
         )}
+        style={safeAreaStyle}
         {...props}
       >
         {children}
         <SheetPrimitive.Close
           data-slot="sheet-close"
-          className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+          className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none min-h-[44px] min-w-[44px] flex items-center justify-center touch-manipulation [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+          style={{ top: "calc(1rem + var(--safe-area-inset-top))" }}
         >
           <XIcon />
           <span className="sr-only">Close</span>

@@ -16,7 +16,7 @@ export function ConnectWallet() {
           onClick={() => connect({ connector: injectedConnector })}
           disabled={isPending}
           size="sm"
-          className="flex-1 h-8 text-xs bg-zinc-100 hover:bg-white active:bg-zinc-200 text-zinc-900"
+          className="flex-1 text-xs bg-zinc-100 hover:bg-white active:bg-zinc-200 text-zinc-900 touch-manipulation"
         >
           <Wallet className="h-3.5 w-3.5 mr-1.5" />
           {isPending ? 'Connecting...' : 'Connect'}
@@ -28,13 +28,13 @@ export function ConnectWallet() {
           onClick={() => connect({ connector: walletConnectConnector })}
           disabled={isPending}
           size="sm"
-          className="flex-1 h-8 text-xs border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+          className="flex-1 text-xs border-zinc-700 text-zinc-300 hover:bg-zinc-800 touch-manipulation"
         >
           WalletConnect
         </Button>
       )}
       {!injectedConnector && !walletConnectConnector && (
-        <Button disabled size="sm" className="w-full h-8 text-xs">
+        <Button disabled size="sm" className="w-full text-xs">
           No Wallet Found
         </Button>
       )}
