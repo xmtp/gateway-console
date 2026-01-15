@@ -13,6 +13,8 @@ import {
 } from '@/components/messaging'
 import { MobileHeader } from '@/components/layout'
 import { useXMTP } from '@/contexts/XMTPContext'
+import { useMessaging } from '@/contexts/MessagingContext'
+import { useENSName } from '@/hooks/useENSName'
 import { APP_NAME } from '@/lib/constants'
 import { ArrowDown } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -73,20 +75,40 @@ function DeveloperSidebar() {
   )
 }
 
+// Helper to truncate address for display
+function truncateAddress(address: string): string {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`
+}
+
 // Main app content - uses responsive layout context
 function AppContent() {
   const { client, isConnecting } = useXMTP()
-  const { activePanel } = useResponsiveLayout()
+  const { activePanel, isMobile } = useResponsiveLayout()
+  const { peerAddress, groupName, conversationType } = useMessaging()
+
+  // Resolve ENS name for DM conversations
+  const { ensName } = useENSName(peerAddress)
+
+  // Compute mobile header title based on conversation state
+  const getMobileTitle = (): string | undefined => {
+    if (activePanel !== 'chat') return undefined // use default title
+    if (conversationType === 'group' && groupName) return groupName
+    if (conversationType === 'dm') {
+      if (ensName) return ensName
+      if (peerAddress) return truncateAddress(peerAddress)
+    }
+    return 'Chat'
+  }
 
   // Helper to determine if conversation panel should be visible
-  // On mobile: only when activePanel is 'conversations'
+  // On mobile: only when activePanel is 'conversations', takes full width
   // On desktop: always visible (md: breakpoint handles this via CSS)
   const conversationPanelClasses = cn(
     "flex flex-col border-r",
-    // Mobile: toggle visibility based on activePanel
-    activePanel === 'conversations' ? 'flex' : 'hidden',
-    // Desktop: always show with fixed width
-    "md:flex md:w-72 md:shrink-0"
+    // Mobile: toggle visibility based on activePanel, full width when visible
+    activePanel === 'conversations' ? 'flex flex-1' : 'hidden',
+    // Desktop: always show with fixed width, don't grow
+    "md:flex md:flex-none md:w-72 md:shrink-0"
   )
 
   // Helper to determine if chat panel should be visible
@@ -101,9 +123,9 @@ function AppContent() {
   )
 
   return (
-    <div className="min-h-screen flex flex-col bg-black">
-      {/* Mobile Header - uses CSS md:hidden for visibility, always rendered */}
-      <MobileHeader menuContent={<DeveloperSidebar />} />
+    <div className={cn("min-h-screen flex flex-col bg-black", isMobile && "pt-14")}>
+      {/* Mobile Header - fixed position, conditionally rendered via isMobile */}
+      <MobileHeader menuContent={<DeveloperSidebar />} title={getMobileTitle()} />
 
       {/* Gateway Console Header - hidden on mobile, shown on desktop */}
       <div className="relative px-4 py-2.5 bg-zinc-950 border-b border-zinc-800/50 hidden md:block">
