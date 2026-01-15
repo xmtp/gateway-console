@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo, type ReactNode } from "react"
 import { useMediaQuery } from "@mantine/hooks"
 
 // Mobile breakpoint - matches Tailwind's md: breakpoint
@@ -36,6 +36,12 @@ interface ResponsiveLayoutHistoryState {
 interface ResponsiveLayoutState {
   activePanel: ActivePanel
   selectedConversationTopic: string | null
+}
+
+// Navigation stack entry for desktop back navigation
+interface NavigationEntry {
+  panel: ActivePanel
+  topic: string | null
 }
 
 // Public context value - does not expose internal implementation details
@@ -91,62 +97,52 @@ function getLayoutState(historyState: unknown): ResponsiveLayoutHistoryState["__
 }
 
 // Helper to merge our state with existing history.state
-function mergeHistoryState(panel: ActivePanel, topic: string | null, depth: number): ResponsiveLayoutHistoryState {
-  const existingState = window.history.state
+function mergeHistoryState(
+  existingHistoryState: unknown,
+  panel: ActivePanel,
+  topic: string | null,
+  depth: number
+): ResponsiveLayoutHistoryState {
   return {
-    ...(typeof existingState === "object" && existingState !== null ? existingState : {}),
+    ...(typeof existingHistoryState === "object" && existingHistoryState !== null ? existingHistoryState : {}),
     __responsiveLayout: { panel, topic, depth },
   }
 }
 
 export function ResponsiveLayoutProvider({ children }: ResponsiveLayoutProviderProps) {
   const isMobile = useIsMobile()
-  const isInitialized = useRef(false)
-  const hasSyncedMobileState = useRef(false)
+  const prevIsMobileRef = useRef(isMobile)
   const historyDepth = useRef(0)
   const lastPushedState = useRef<{ panel: ActivePanel; topic: string | null } | null>(null)
+  // Navigation stack for desktop back navigation
+  const navigationStack = useRef<NavigationEntry[]>([{ panel: "conversations", topic: null }])
 
   const [state, setState] = useState<ResponsiveLayoutState>({
     activePanel: "conversations",
     selectedConversationTopic: null,
   })
 
-  // Initialize history state on mount (mobile only)
+  // Sync history when entering mobile mode (always reconcile with current state)
   useEffect(() => {
-    if (isInitialized.current) return
-    isInitialized.current = true
-
-    // Only manage history state on mobile
-    if (!isMobile) return
-
-    // Seed initial history state with depth 0
-    const newState = mergeHistoryState(state.activePanel, state.selectedConversationTopic, 0)
-    window.history.replaceState(newState, "")
-    hasSyncedMobileState.current = true
-    lastPushedState.current = { panel: state.activePanel, topic: state.selectedConversationTopic }
-  }, [isMobile, state.activePanel, state.selectedConversationTopic])
-
-  // Handle isMobile flipping after initial mount
-  useEffect(() => {
-    // Skip initial render
-    if (!isInitialized.current) return
-
-    // When transitioning to mobile for the first time after init, sync history
-    if (isMobile && !hasSyncedMobileState.current) {
+    // Only act when transitioning from desktop to mobile
+    if (isMobile && !prevIsMobileRef.current) {
       // If not at root panel, seed conversations at depth 0 then push current at depth 1
       if (state.activePanel !== "conversations") {
-        const rootState = mergeHistoryState("conversations", null, 0)
+        const rootState = mergeHistoryState(window.history.state, "conversations", null, 0)
         window.history.replaceState(rootState, "")
         historyDepth.current = 1
-        const currentState = mergeHistoryState(state.activePanel, state.selectedConversationTopic, 1)
+        const currentState = mergeHistoryState(window.history.state, state.activePanel, state.selectedConversationTopic, 1)
         window.history.pushState(currentState, "")
       } else {
-        const newState = mergeHistoryState(state.activePanel, state.selectedConversationTopic, 0)
+        const newState = mergeHistoryState(window.history.state, state.activePanel, state.selectedConversationTopic, 0)
         window.history.replaceState(newState, "")
+        historyDepth.current = 0
       }
-      hasSyncedMobileState.current = true
       lastPushedState.current = { panel: state.activePanel, topic: state.selectedConversationTopic }
     }
+
+    // Update previous mobile state for next transition detection
+    prevIsMobileRef.current = isMobile
   }, [isMobile, state.activePanel, state.selectedConversationTopic])
 
   // Handle browser back/forward navigation (mobile only)
@@ -172,94 +168,122 @@ export function ResponsiveLayoutProvider({ children }: ResponsiveLayoutProviderP
     return () => window.removeEventListener("popstate", handlePopState)
   }, [isMobile])
 
-  // Helper to push navigation state (called from navigation functions, not effect)
-  const pushNavigationState = useCallback((panel: ActivePanel, topic: string | null) => {
-    // Only push history on mobile
-    if (!isMobile) return
+  // Navigate to conversation list
+  const showConversations = useCallback(() => {
+    const current = navigationStack.current[navigationStack.current.length - 1]
+    const nextPanel: ActivePanel = "conversations"
+    const nextTopic: string | null = null
 
-    // Skip if state hasn't materially changed
-    if (lastPushedState.current?.panel === panel && lastPushedState.current?.topic === topic) {
+    // No-op if already on conversations with no topic
+    if (current.panel === nextPanel && current.topic === nextTopic) {
       return
     }
 
-    historyDepth.current += 1
-    const newState = mergeHistoryState(panel, topic, historyDepth.current)
-    window.history.pushState(newState, "")
-    lastPushedState.current = { panel, topic }
-  }, [isMobile])
+    // Push to navigation stack for desktop back support
+    navigationStack.current.push({ panel: nextPanel, topic: nextTopic })
 
-  // Navigate to conversation list
-  const showConversations = useCallback(() => {
-    let didTransition = false
-    setState((prev) => {
-      // No-op if already on conversations with no topic
-      if (prev.activePanel === "conversations" && prev.selectedConversationTopic === null) {
-        return prev
-      }
-      didTransition = true
-      return {
-        activePanel: "conversations",
-        selectedConversationTopic: null,
-      }
+    setState({
+      activePanel: nextPanel,
+      selectedConversationTopic: nextTopic,
     })
-    if (didTransition) {
-      pushNavigationState("conversations", null)
+
+    // Push to browser history on mobile
+    if (isMobile) {
+      if (lastPushedState.current?.panel !== nextPanel || lastPushedState.current?.topic !== nextTopic) {
+        historyDepth.current += 1
+        const newState = mergeHistoryState(window.history.state, nextPanel, nextTopic, historyDepth.current)
+        window.history.pushState(newState, "")
+        lastPushedState.current = { panel: nextPanel, topic: nextTopic }
+      }
     }
-  }, [pushNavigationState])
+  }, [isMobile])
 
   // Navigate to chat view with topic
   const showChat = useCallback((topic: string) => {
-    let didTransition = false
-    setState((prev) => {
-      // No-op if already on this chat
-      if (prev.activePanel === "chat" && prev.selectedConversationTopic === topic) {
-        return prev
-      }
-      didTransition = true
-      return {
-        activePanel: "chat",
-        selectedConversationTopic: topic,
-      }
-    })
-    if (didTransition) {
-      pushNavigationState("chat", topic)
+    const current = navigationStack.current[navigationStack.current.length - 1]
+    const nextPanel: ActivePanel = "chat"
+
+    // No-op if already on this chat
+    if (current.panel === nextPanel && current.topic === topic) {
+      return
     }
-  }, [pushNavigationState])
+
+    // Push to navigation stack for desktop back support
+    navigationStack.current.push({ panel: nextPanel, topic })
+
+    setState({
+      activePanel: nextPanel,
+      selectedConversationTopic: topic,
+    })
+
+    // Push to browser history on mobile
+    if (isMobile) {
+      if (lastPushedState.current?.panel !== nextPanel || lastPushedState.current?.topic !== topic) {
+        historyDepth.current += 1
+        const newState = mergeHistoryState(window.history.state, nextPanel, topic, historyDepth.current)
+        window.history.pushState(newState, "")
+        lastPushedState.current = { panel: nextPanel, topic }
+      }
+    }
+  }, [isMobile])
 
   // Navigate to settings/wallet panel (clears topic for clean state)
   const showSettings = useCallback(() => {
-    let didTransition = false
-    setState((prev) => {
-      // No-op if already on settings
-      if (prev.activePanel === "settings") {
-        return prev
-      }
-      didTransition = true
-      return {
-        activePanel: "settings",
-        selectedConversationTopic: null,
-      }
-    })
-    if (didTransition) {
-      pushNavigationState("settings", null)
+    const current = navigationStack.current[navigationStack.current.length - 1]
+    const nextPanel: ActivePanel = "settings"
+    const nextTopic: string | null = null
+
+    // No-op if already on settings
+    if (current.panel === nextPanel) {
+      return
     }
-  }, [pushNavigationState])
+
+    // Push to navigation stack for desktop back support
+    navigationStack.current.push({ panel: nextPanel, topic: nextTopic })
+
+    setState({
+      activePanel: nextPanel,
+      selectedConversationTopic: nextTopic,
+    })
+
+    // Push to browser history on mobile
+    if (isMobile) {
+      if (lastPushedState.current?.panel !== nextPanel || lastPushedState.current?.topic !== nextTopic) {
+        historyDepth.current += 1
+        const newState = mergeHistoryState(window.history.state, nextPanel, nextTopic, historyDepth.current)
+        window.history.pushState(newState, "")
+        lastPushedState.current = { panel: nextPanel, topic: nextTopic }
+      }
+    }
+  }, [isMobile])
 
   // Return to previous panel
   const goBack = useCallback(() => {
     if (isMobile && historyDepth.current > 0) {
-      // Use browser history for proper back navigation
+      // Use browser history for proper back navigation on mobile
       window.history.back()
     } else {
-      // On desktop or at root, return to conversations
-      setState({
-        activePanel: "conversations",
-        selectedConversationTopic: null,
-      })
+      // Desktop or mobile at root: use internal navigation stack
+      if (navigationStack.current.length > 1) {
+        // Pop current entry
+        navigationStack.current.pop()
+        // Get previous entry
+        const previous = navigationStack.current[navigationStack.current.length - 1]
+        setState({
+          activePanel: previous.panel,
+          selectedConversationTopic: previous.topic,
+        })
+      } else {
+        // At root, ensure we're on conversations
+        setState({
+          activePanel: "conversations",
+          selectedConversationTopic: null,
+        })
+      }
     }
   }, [isMobile])
 
-  const value: ResponsiveLayoutContextValue = {
+  const value: ResponsiveLayoutContextValue = useMemo(() => ({
     activePanel: state.activePanel,
     selectedConversationTopic: state.selectedConversationTopic,
     isMobile,
@@ -267,7 +291,7 @@ export function ResponsiveLayoutProvider({ children }: ResponsiveLayoutProviderP
     showChat,
     showSettings,
     goBack,
-  }
+  }), [state.activePanel, state.selectedConversationTopic, isMobile, showConversations, showChat, showSettings, goBack])
 
   return (
     <ResponsiveLayoutContext.Provider value={value}>
