@@ -195,7 +195,7 @@ function MessageBubble({ message, isOwn, showSender = false, senderName, memberN
       )}
       <div
         className={cn(
-          'px-3 py-2 rounded-2xl text-sm',
+          'px-3 py-2 rounded-2xl text-sm break-all',
           isOwn
             ? 'bg-primary text-primary-foreground rounded-br-md'
             : 'bg-muted rounded-bl-md'
