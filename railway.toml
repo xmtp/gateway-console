@@ -5,6 +5,9 @@
 builder = "nixpacks"
 buildCommand = "npm install && npm run build"
 
+[build.env]
+NIXPACKS_NODE_VERSION = "22"
+
 [deploy]
 startCommand = "npx serve dist -l ${PORT:-3000}"
 healthcheckPath = "/"
