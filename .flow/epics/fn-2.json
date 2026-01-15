@@ -1,0 +1,13 @@
+{
+  "branch_name": "fn-2",
+  "created_at": "2026-01-15T05:54:26.566482Z",
+  "depends_on_epics": [],
+  "id": "fn-2",
+  "next_task": 1,
+  "plan_review_status": "ship",
+  "plan_reviewed_at": "2026-01-15T07:14:20.885082Z",
+  "spec_path": ".flow/specs/fn-2.md",
+  "status": "open",
+  "title": "Responsive Layout and Design",
+  "updated_at": "2026-01-15T07:14:20.919815Z"
+}
