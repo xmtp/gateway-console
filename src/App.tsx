@@ -90,14 +90,15 @@ function AppContent() {
   const { ensName } = useENSName(peerAddress)
 
   // Compute mobile header title based on conversation state
+  // Returns undefined for non-chat panels so MobileHeader uses 'Messages' default
   const getMobileTitle = (): string | undefined => {
-    if (activePanel !== 'chat') return undefined // use default title
+    if (activePanel !== 'chat') return undefined // use default title ('Messages')
     if (conversationType === 'group' && groupName) return groupName
     if (conversationType === 'dm') {
       if (ensName) return ensName
       if (peerAddress) return truncateAddress(peerAddress)
     }
-    return 'Chat'
+    return undefined // fallback to 'Messages' from MobileHeader
   }
 
   // Helper to determine if conversation panel should be visible
