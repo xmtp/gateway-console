@@ -25,16 +25,12 @@ export function MobileHeader({ menuContent, title: titleProp }: MobileHeaderProp
   // Only render on mobile
   if (!isMobile) return null
 
-  const showBackButton = activePanel !== 'conversations'
+  // Back button only shows in chat view per spec
+  const showBackButton = activePanel === 'chat'
 
-  // Use provided title, or fall back to panel-based title
-  const title = titleProp ?? (
-    activePanel === 'chat'
-      ? 'Chat'
-      : activePanel === 'settings'
-        ? 'Settings'
-        : 'Messages'
-  )
+  // Use provided title, or fall back to 'Messages' per spec
+  // (spec says "conversation name or 'Messages'")
+  const title = titleProp ?? 'Messages'
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between h-14 px-3 bg-zinc-950 border-b border-zinc-800/50">
