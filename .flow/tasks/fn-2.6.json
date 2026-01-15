@@ -1,16 +1,25 @@
 {
-  "assignee": null,
+  "assignee": "saul@xmtp.com",
   "claim_note": "",
-  "claimed_at": null,
+  "claimed_at": "2026-01-15T15:52:08.711184Z",
   "created_at": "2026-01-15T06:00:14.865415Z",
   "depends_on": [
     "fn-2.4"
   ],
   "epic": "fn-2",
+  "evidence": {
+    "commits": [
+      "13bcc6c5d7f50c98f8837b52c6de9288bf69ebda"
+    ],
+    "prs": [],
+    "tests": [
+      "npm run typecheck"
+    ]
+  },
   "id": "fn-2.6",
   "priority": null,
   "spec_path": ".flow/tasks/fn-2.6.md",
-  "status": "todo",
+  "status": "done",
   "title": "Add safe-area CSS and touch target improvements",
-  "updated_at": "2026-01-15T06:20:57.392759Z"
+  "updated_at": "2026-01-15T15:54:25.565701Z"
 }

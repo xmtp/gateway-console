@@ -50,9 +50,20 @@ Files to check and update:
 - [ ] `npm run typecheck` passes
 - [ ] Visual test on iOS simulator or device shows no notch overlap
 ## Done summary
-TBD
+- Added safe-area CSS variables for iOS notch/home indicator support
+- Applied safe-area-inset-top to MobileHeader and Sheet components
+- Applied safe-area-inset-bottom to MessageInput area
+- Ensured all buttons have minimum 44px touch target
+- Added touch-manipulation class to interactive elements
 
+Why:
+- Prevents UI overlap with iOS notch and home indicator
+- Improves touch usability per Apple HIG guidelines
+
+Verification:
+- npm run typecheck passes
+- All button sizes now meet 44px minimum requirement
 ## Evidence
-- Commits:
-- Tests:
+- Commits: 13bcc6c5d7f50c98f8837b52c6de9288bf69ebda
+- Tests: npm run typecheck
 - PRs:

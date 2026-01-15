@@ -46,14 +46,17 @@ export function MobileHeader({ menuContent, title: titleProp }: MobileHeaderProp
   )
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 grid grid-cols-[auto,1fr,auto] items-center h-14 px-3 bg-zinc-950 border-b border-zinc-800/50">
+    <header
+      className="fixed top-0 left-0 right-0 z-50 grid grid-cols-[auto,1fr,auto] items-center h-14 px-3 bg-zinc-950 border-b border-zinc-800/50"
+      style={{ paddingTop: 'var(--safe-area-inset-top)' }}
+    >
       {/* Left section: Back button (chat) or Menu button (conversations/settings) */}
       {showBackButton ? (
         <Button
           variant="ghost"
           size="icon"
           onClick={goBack}
-          className="h-11 w-11 -ml-2 text-zinc-400 hover:text-zinc-100"
+          className="h-11 w-11 min-h-[44px] min-w-[44px] -ml-2 text-zinc-400 hover:text-zinc-100 touch-manipulation"
           aria-label="Go back"
         >
           <ChevronLeft className="h-5 w-5" />
@@ -64,13 +67,13 @@ export function MobileHeader({ menuContent, title: titleProp }: MobileHeaderProp
             <Button
               variant="ghost"
               size="icon"
-              className="h-11 w-11 -ml-2 text-zinc-400 hover:text-zinc-100"
+              className="h-11 w-11 min-h-[44px] min-w-[44px] -ml-2 text-zinc-400 hover:text-zinc-100 touch-manipulation"
               aria-label="Open menu"
             >
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-72 p-0 bg-zinc-950 border-zinc-800">
+          <SheetContent side="left" className="w-72 p-0 bg-zinc-950 border-zinc-800" style={{ paddingTop: 'var(--safe-area-inset-top)' }}>
             {sheetContent}
           </SheetContent>
         </Sheet>
@@ -90,13 +93,13 @@ export function MobileHeader({ menuContent, title: titleProp }: MobileHeaderProp
           <Button
             variant="ghost"
             size="icon"
-            className="h-11 w-11 -mr-2 text-zinc-400 hover:text-zinc-100"
+            className="h-11 w-11 min-h-[44px] min-w-[44px] -mr-2 text-zinc-400 hover:text-zinc-100 touch-manipulation"
             aria-label="Open menu"
           >
             <Menu className="h-5 w-5" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="right" className="w-72 p-0 bg-zinc-950 border-zinc-800">
+        <SheetContent side="right" className="w-72 p-0 bg-zinc-950 border-zinc-800" style={{ paddingTop: 'var(--safe-area-inset-top)' }}>
           {sheetContent}
         </SheetContent>
       </Sheet>

@@ -36,7 +36,10 @@ export function MessageInput() {
   }
 
   return (
-    <div className="p-3 border-t">
+    <div
+      className="p-3 border-t"
+      style={{ paddingBottom: 'calc(0.75rem + var(--safe-area-inset-bottom))' }}
+    >
       {error && (
         <p className="text-xs text-destructive mb-2">{error.message}</p>
       )}
@@ -47,7 +50,7 @@ export function MessageInput() {
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
           disabled={isSending}
-          className="flex-1"
+          className="flex-1 min-h-[44px]"
         />
         {/* Show cost estimate when there's message content */}
         {message.trim() && (
@@ -57,6 +60,7 @@ export function MessageInput() {
           onClick={handleSend}
           disabled={!message.trim() || isSending}
           size="icon"
+          className="min-h-[44px] min-w-[44px] touch-manipulation"
         >
           {isSending ? (
             <Loader2 className="h-4 w-4 animate-spin" />

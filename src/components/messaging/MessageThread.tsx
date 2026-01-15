@@ -284,7 +284,7 @@ export function MessageThread() {
               variant="outline"
               size="sm"
               onClick={() => setSettingsOpen(true)}
-              className="h-7 text-xs"
+              className="min-h-[44px] text-xs touch-manipulation"
             >
               <Settings className="h-3.5 w-3.5 mr-1" />
               Manage
