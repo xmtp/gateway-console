@@ -271,7 +271,7 @@ export function MessageThread() {
   return (
     <div className="flex-1 flex flex-col">
       {/* Header */}
-      <div className="p-3 border-b flex items-center gap-2">
+      <div className="p-3 border-b flex items-center gap-2 min-h-[52px]">
         {isGroup ? (
           <>
             <div className="w-6 h-6 rounded-full flex items-center justify-center bg-purple-500/10">
