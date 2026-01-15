@@ -53,8 +53,26 @@ function DrawerOverlay({
 function DrawerContent({
   className,
   children,
+  direction = "bottom",
+  style,
   ...props
-}: React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>) {
+}: React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content> & {
+  direction?: "top" | "right" | "bottom" | "left"
+}) {
+  // Determine safe area padding based on direction
+  const safeAreaStyle: React.CSSProperties = {
+    ...(direction === "left" || direction === "right"
+      ? {
+          paddingTop: "var(--safe-area-inset-top)",
+          paddingBottom: "var(--safe-area-inset-bottom)",
+          paddingLeft: direction === "left" ? "var(--safe-area-inset-left)" : undefined,
+          paddingRight: direction === "right" ? "var(--safe-area-inset-right)" : undefined,
+        }
+      : {}),
+    ...(direction === "top" ? { paddingTop: "var(--safe-area-inset-top)" } : {}),
+    ...(direction === "bottom" ? { paddingBottom: "var(--safe-area-inset-bottom)" } : {}),
+  }
+
   return (
     <DrawerPortal>
       <DrawerOverlay />
@@ -68,7 +86,7 @@ function DrawerContent({
           "data-[vaul-drawer-direction=left]:inset-y-0 data-[vaul-drawer-direction=left]:left-0 data-[vaul-drawer-direction=left]:w-3/4 data-[vaul-drawer-direction=left]:border-r data-[vaul-drawer-direction=left]:sm:max-w-sm",
           className
         )}
-        style={{ paddingBottom: "var(--safe-area-inset-bottom)" }}
+        style={{ ...safeAreaStyle, ...style }}
         {...props}
       >
         <div className="bg-muted mx-auto mt-4 hidden h-2 w-[100px] shrink-0 rounded-full group-data-[vaul-drawer-direction=bottom]/drawer-content:block" />

@@ -46,14 +46,20 @@ function SheetContent({
   className,
   children,
   side = "right",
+  style,
   ...props
 }: React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
 }) {
   // Determine safe area padding based on side
-  const safeAreaStyle = {
+  const safeAreaStyle: React.CSSProperties = {
     ...(side === "left" || side === "right"
-      ? { paddingTop: "var(--safe-area-inset-top)", paddingBottom: "var(--safe-area-inset-bottom)" }
+      ? {
+          paddingTop: "var(--safe-area-inset-top)",
+          paddingBottom: "var(--safe-area-inset-bottom)",
+          paddingLeft: side === "left" ? "var(--safe-area-inset-left)" : undefined,
+          paddingRight: side === "right" ? "var(--safe-area-inset-right)" : undefined,
+        }
       : {}),
     ...(side === "top" ? { paddingTop: "var(--safe-area-inset-top)" } : {}),
     ...(side === "bottom" ? { paddingBottom: "var(--safe-area-inset-bottom)" } : {}),
@@ -76,7 +82,7 @@ function SheetContent({
             "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto border-t",
           className
         )}
-        style={safeAreaStyle}
+        style={{ ...safeAreaStyle, ...style }}
         {...props}
       >
         {children}
