@@ -164,6 +164,14 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
   }, [activeUserId])
 
   const initializeWithWallet = useCallback(async (walletClient: WalletClient, address: Address) => {
+    // Warm up OPFS before SDK initialization to avoid potential race conditions
+    // with the SyncAccessHandle Pool VFS used by the XMTP SDK
+    try {
+      await navigator.storage.getDirectory()
+    } catch {
+      // Ignore - OPFS may not be available in all environments
+    }
+
     console.log('[XMTP] initializeWithWallet called:', {
       address,
       currentActiveUserId: activeUserId,

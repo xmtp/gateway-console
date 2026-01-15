@@ -23,7 +23,7 @@ export function WalletStatus() {
         size="sm"
         onClick={() => switchChain({ chainId: baseSepolia.id })}
         disabled={isSwitching}
-        className="w-full text-xs touch-manipulation"
+        className="w-full h-8 text-xs"
       >
         {isSwitching ? 'Switching...' : 'Switch to Base Sepolia'}
       </Button>
@@ -41,8 +41,7 @@ export function WalletStatus() {
       </div>
       <button
         onClick={() => disconnect()}
-        className="p-1.5 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 active:bg-zinc-700 transition-colors flex-shrink-0 touch-manipulation min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 flex items-center justify-center"
-        aria-label="Disconnect wallet"
+        className="text-zinc-500 hover:text-zinc-300 transition-colors flex-shrink-0 min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 flex items-center justify-center"
       >
         <X className="h-3.5 w-3.5" />
       </button>
