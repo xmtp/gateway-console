@@ -22,7 +22,6 @@ services:
       - redis
     ports:
       - "5050:5872"
-      - "5051:5051"
     env_file:
       - .env.local
     environment:

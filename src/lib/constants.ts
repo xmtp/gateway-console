@@ -79,9 +79,11 @@ export const FEE_CONSTANTS = {
 
 // Gateway configuration
 export const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL || 'http://localhost:5050'
+
+// Health endpoint is now served on the same port as the gateway
 export const GATEWAY_HEALTH_URL =
   import.meta.env.VITE_GATEWAY_HEALTH_URL ||
-  GATEWAY_URL.replace(/:(\d+)$/, ':5051') + '/health'
+  GATEWAY_URL.replace(/\/$/, '') + '/health'
 export const APP_NAME = import.meta.env.VITE_APP_NAME as string | undefined
 export const CONTRACTS_ENVIRONMENT = import.meta.env.VITE_CONTRACTS_ENVIRONMENT as string | undefined
 
