@@ -290,8 +290,9 @@ function AppContent() {
             </div>
           ) : (
             <main className="flex-1 flex flex-col items-center justify-center p-8 gap-4">
-              <XMTPStatus />
-              {!xmtpError && (
+              {xmtpError ? (
+                <XMTPStatus />
+              ) : (
                 <p className="text-muted-foreground">
                   Select a user to start messaging
                 </p>

@@ -33,6 +33,28 @@ export const TOKENS = {
 // XMTP App Chain
 export const XMTP_CHAIN_ID = 351243127
 
+// XMTP Appchain RPC URL
+export const XMTP_APPCHAIN_RPC_URL =
+  import.meta.env.VITE_APP_CHAIN_RPC_URL || 'https://xmtp-testnet.g.alchemy.com/public'
+
+// Appchain contract addresses (from funding portal testnet.json)
+export const APPCHAIN_CONTRACTS = {
+  appChainGateway: '0xB64D5bF62F30512Bd130C0D7c80DB7ac1e6801a3' as Address,
+  groupMessageBroadcaster: '0x6619B1c95eb10d339903E4AA9938314d6E711d17' as Address,
+  identityUpdateBroadcaster: '0xD49DCDd95Ce435eaB2E53DBfcBceF5cAAc78D95a' as Address,
+} as const
+
+// Gas reserve constants for deposit splitting
+export const GAS_RESERVE_CONSTANTS = {
+  // Default split: 25% to gas reserve, 75% to messaging
+  defaultGasRatioPercent: 25n,
+  // Minimum gas reserve: 0.01 xUSD (in 6 decimals = 10_000)
+  minimumGasReserve: 10_000n,
+  // Bridge gas parameters
+  bridgeGasLimit: 200_000n,
+  bridgeMaxFeePerGas: 2_000_000_000n,
+} as const
+
 // Gateway payer address - derived from PAYER_PRIVATE_KEY in gateway service
 // This is where deposits are sent
 export const GATEWAY_PAYER_ADDRESS = import.meta.env.VITE_GATEWAY_PAYER_ADDRESS as Address | undefined

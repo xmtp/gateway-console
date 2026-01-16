@@ -31,6 +31,7 @@ import {
   User,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { GasOperationCostBadge } from './GasOperationCostBadge'
 
 function truncateAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`
@@ -97,19 +98,22 @@ function MemberRow({ member, isCurrentUser, canRemove, onRemove, isRemoving }: M
 
       {/* Remove button */}
       {canRemove && !isCurrentUser && !member.isSuperAdmin && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-          onClick={onRemove}
-          disabled={isRemoving}
-        >
-          {isRemoving ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <UserMinus className="h-3.5 w-3.5" />
-          )}
-        </Button>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
+          <GasOperationCostBadge operation="removeMember" compact tooltipSide="left" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            onClick={onRemove}
+            disabled={isRemoving}
+          >
+            {isRemoving ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <UserMinus className="h-3.5 w-3.5" />
+            )}
+          </Button>
+        </div>
       )}
     </div>
   )
@@ -348,14 +352,17 @@ export function GroupSettingsDialog({
                   </span>
 
                   {pendingMember.isReachable && (
-                    <Button
-                      size="sm"
-                      onClick={confirmAddMember}
-                      disabled={isAdding}
-                    >
-                      {isAdding && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
-                      Add
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <GasOperationCostBadge operation="addMember" compact tooltipSide="top" />
+                      <Button
+                        size="sm"
+                        onClick={confirmAddMember}
+                        disabled={isAdding}
+                      >
+                        {isAdding && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+                        Add
+                      </Button>
+                    </div>
                   )}
 
                   <Button

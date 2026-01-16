@@ -1,7 +1,14 @@
 import { usePayerBalance } from '@/hooks/usePayerBalance'
+import { useGasReserveBalance } from '@/hooks/useGasReserveBalance'
 import { GATEWAY_PAYER_ADDRESS } from '@/lib/constants'
 import { CopyableAddress } from '@/components/ui/copyable-address'
-import { Loader2, AlertTriangle } from 'lucide-react'
+import { Loader2, AlertTriangle, Fuel } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
 export function BalanceDisplay() {
@@ -12,6 +19,12 @@ export function BalanceDisplay() {
     isLoading,
     error,
   } = usePayerBalance()
+
+  const {
+    formattedOperations,
+    warningLevel: gasWarningLevel,
+    isLoading: isGasLoading,
+  } = useGasReserveBalance()
 
   // No payer address configured
   if (!GATEWAY_PAYER_ADDRESS) {
@@ -73,6 +86,44 @@ export function BalanceDisplay() {
           <span className="text-xs text-zinc-500 font-mono">available</span>
         </div>
       </div>
+
+      {/* Gas Reserve section - secondary prominence */}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="pt-2 border-t border-zinc-800/50 cursor-help">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Fuel className="h-3 w-3 text-zinc-600" />
+                  <span className="text-[11px] text-zinc-500 font-mono">Gas Reserve</span>
+                  {gasWarningLevel !== 'none' && (
+                    <AlertTriangle className={cn(
+                      'h-2.5 w-2.5',
+                      gasWarningLevel === 'critical' ? 'text-red-400' : 'text-amber-400'
+                    )} />
+                  )}
+                </div>
+                <span className={cn(
+                  'text-[11px] font-mono tabular-nums',
+                  gasWarningLevel === 'critical' ? 'text-red-400' :
+                  gasWarningLevel === 'low' ? 'text-amber-400' : 'text-zinc-400'
+                )}>
+                  {isGasLoading ? '...' : `${formattedOperations} ops`}
+                </span>
+              </div>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="max-w-xs">
+            <div className="space-y-1.5 text-xs">
+              <p className="font-medium">Gas Reserve for Group Operations</p>
+              <p className="text-muted-foreground">
+                Used for on-chain operations like group membership changes and identity updates.
+                Separate from message fees.
+              </p>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       {/* Balance row */}
       <div className="flex items-center justify-between pt-1 border-t border-zinc-800">

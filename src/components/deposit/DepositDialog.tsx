@@ -13,8 +13,14 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useDeposit } from '@/hooks/useDeposit'
-import { Loader2, CheckCircle2, XCircle, ArrowDownToLine, PenLine } from 'lucide-react'
+import { Loader2, CheckCircle2, XCircle, ArrowDownToLine, PenLine, MessageSquare, Fuel, Info } from 'lucide-react'
 import { TOKENS, GATEWAY_PAYER_ADDRESS } from '@/lib/constants'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 export function DepositDialog() {
   const [open, setOpen] = useState(false)
@@ -24,6 +30,8 @@ export function DepositDialog() {
 
   const {
     deposit,
+    calculateSplit,
+    defaultGasRatioPercent,
     status,
     error,
     isPending,
@@ -49,6 +57,25 @@ export function DepositDialog() {
   const parsedAmount = parseFloat(amount) || 0
   const maxAmount = rawBalance
   const isValidAmount = parsedAmount > 0 && parsedAmount <= maxAmount
+
+  // Calculate split preview
+  const amountBigInt = parsedAmount > 0
+    ? BigInt(Math.floor(parsedAmount * 10 ** TOKENS.underlyingFeeToken.decimals))
+    : 0n
+  const { payerAmount, appChainAmount } = calculateSplit(amountBigInt, defaultGasRatioPercent)
+  const messagingPercent = 100n - defaultGasRatioPercent
+  const gasPercent = defaultGasRatioPercent
+
+  // Format split amounts
+  const formatSplitAmount = (amt: bigint) => {
+    const value = Number(amt) / 10 ** TOKENS.underlyingFeeToken.decimals
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4,
+    }).format(value)
+  }
 
   // Reset when dialog opens (only on open transition, not on status change)
   useEffect(() => {
@@ -144,7 +171,7 @@ export function DepositDialog() {
             Deposit successful!
           </p>
           <p className="text-sm text-muted-foreground">
-            Your messaging balance has been updated
+            Your messaging balance and gas reserve have been updated
           </p>
           <Button onClick={() => setOpen(false)}>
             Done
@@ -170,54 +197,94 @@ export function DepositDialog() {
 
     // Ready state - input form
     return (
-      <div className="space-y-4 py-2">
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Amount</span>
-            <span className="text-muted-foreground">
-              Balance: {formattedBalance}
-            </span>
+      <TooltipProvider>
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Amount</span>
+              <span className="text-muted-foreground">
+                Balance: {formattedBalance}
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                placeholder="0.00"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                min="0"
+                step="0.01"
+                className="flex-1"
+              />
+              <Button variant="outline" size="sm" onClick={handleMax}>
+                Max
+              </Button>
+            </div>
+            {parsedAmount > maxAmount && (
+              <p className="text-xs text-destructive">
+                Insufficient balance
+              </p>
+            )}
           </div>
-          <div className="flex gap-2">
-            <Input
-              type="number"
-              placeholder="0.00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              min="0"
-              step="0.01"
-              className="flex-1"
-            />
-            <Button variant="outline" size="sm" onClick={handleMax}>
-              Max
-            </Button>
-          </div>
-          {parsedAmount > maxAmount && (
-            <p className="text-xs text-destructive">
-              Insufficient balance
-            </p>
+
+          {/* Split Preview */}
+          {parsedAmount > 0 && (
+            <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground font-medium">Deposit Split</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="left" className="max-w-xs">
+                    <p className="text-xs">
+                      Your deposit is split between messaging fees (for sending messages)
+                      and gas reserve (for group operations like adding members).
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-1.5">
+                    <MessageSquare className="h-3.5 w-3.5 text-emerald-500" />
+                    <span>Messaging</span>
+                    <span className="text-xs text-muted-foreground">({messagingPercent.toString()}%)</span>
+                  </div>
+                  <span className="font-mono text-sm">{formatSplitAmount(payerAmount)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-1.5">
+                    <Fuel className="h-3.5 w-3.5 text-zinc-500" />
+                    <span>Gas Reserve</span>
+                    <span className="text-xs text-muted-foreground">({gasPercent.toString()}%)</span>
+                  </div>
+                  <span className="font-mono text-sm">{formatSplitAmount(appChainAmount)}</span>
+                </div>
+              </div>
+            </div>
           )}
+
+          <Button
+            onClick={handleDeposit}
+            disabled={!isValidAmount || isPending}
+            className="w-full"
+          >
+            {isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Depositing...
+              </>
+            ) : (
+              'Deposit'
+            )}
+          </Button>
+
+          <p className="text-xs text-muted-foreground text-center">
+            Funds messaging and group operations for this app
+          </p>
         </div>
-
-        <Button
-          onClick={handleDeposit}
-          disabled={!isValidAmount || isPending}
-          className="w-full"
-        >
-          {isPending ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Depositing...
-            </>
-          ) : (
-            'Deposit'
-          )}
-        </Button>
-
-        <p className="text-xs text-muted-foreground text-center">
-          Deposits fund your messaging balance for this app
-        </p>
-      </div>
+      </TooltipProvider>
     )
   }
 

@@ -6,12 +6,18 @@ import {
   useWaitForTransactionReceipt,
   useReadContract,
 } from 'wagmi'
-import { parseUnits, zeroAddress } from 'viem'
+import { parseUnits } from 'viem'
 import { baseSepolia } from 'wagmi/chains'
 import { generatePermitSignature } from '@/lib/permit'
 import { DepositSplitterAbi } from '@/abi/DepositSplitter'
 import { MockUnderlyingFeeTokenAbi } from '@/abi/MockUnderlyingFeeToken'
-import { CONTRACTS, TOKENS, GATEWAY_PAYER_ADDRESS } from '@/lib/constants'
+import {
+  CONTRACTS,
+  TOKENS,
+  GATEWAY_PAYER_ADDRESS,
+  APPCHAIN_CONTRACTS,
+  GAS_RESERVE_CONSTANTS,
+} from '@/lib/constants'
 
 export type DepositStatus = 'idle' | 'signing' | 'pending' | 'confirming' | 'success' | 'error'
 
@@ -37,8 +43,22 @@ export function useDeposit() {
     chainId: baseSepolia.id,
   })
 
+  /**
+   * Calculate deposit split amounts
+   * @param totalAmount Total amount to deposit
+   * @param gasRatioPercent Percentage to allocate to gas reserve (0-100)
+   * @returns Object with payerAmount and appChainAmount
+   */
+  const calculateSplit = useCallback((totalAmount: bigint, gasRatioPercent: bigint) => {
+    // Calculate gas reserve amount (rounded down)
+    const appChainAmount = (totalAmount * gasRatioPercent) / 100n
+    // Rest goes to payer registry
+    const payerAmount = totalAmount - appChainAmount
+    return { payerAmount, appChainAmount }
+  }, [])
+
   const deposit = useCallback(
-    async (amountString: string) => {
+    async (amountString: string, gasRatioPercent: bigint = GAS_RESERVE_CONSTANTS.defaultGasRatioPercent) => {
       if (!address || !walletClient) {
         setError(new Error('Wallet not connected'))
         return
@@ -55,6 +75,9 @@ export function useDeposit() {
         setError(new Error('Insufficient balance'))
         return
       }
+
+      // Calculate the split
+      const { payerAmount, appChainAmount } = calculateSplit(amount, gasRatioPercent)
 
       setStatus('signing')
       setError(null)
@@ -74,24 +97,23 @@ export function useDeposit() {
 
         setStatus('pending')
 
-        // Deposit with permit
-        // We deposit all to PayerRegistry (messaging fees), nothing to AppChain
+        // Deposit with permit - split between messaging and gas reserve
         writeContract(
           {
             address: CONTRACTS.depositSplitter,
             abi: DepositSplitterAbi,
             functionName: 'depositFromUnderlyingWithPermit',
             args: [
-              GATEWAY_PAYER_ADDRESS,  // payer - the gateway's payer address
-              BigInt(amount),         // payerRegistryAmount - deposit for messaging
-              zeroAddress,            // appChainRecipient - not used
-              0n,                     // appChainAmount - 0 for this demo
-              0n,                     // appChainGasLimit - not used
-              0n,                     // appChainMaxFeePerGas - not used
-              deadline,               // permit deadline
-              permit.v,               // signature v
-              permit.r,               // signature r
-              permit.s,               // signature s
+              GATEWAY_PAYER_ADDRESS,                    // payer - the gateway's payer address
+              payerAmount,                              // payerRegistryAmount - messaging fees
+              APPCHAIN_CONTRACTS.appChainGateway,       // appChainRecipient - gas reserve recipient
+              appChainAmount,                           // appChainAmount - gas reserve funds
+              GAS_RESERVE_CONSTANTS.bridgeGasLimit,     // appChainGasLimit - for bridging
+              GAS_RESERVE_CONSTANTS.bridgeMaxFeePerGas, // appChainMaxFeePerGas - for bridging
+              deadline,                                 // permit deadline
+              permit.v,                                 // signature v
+              permit.r,                                 // signature r
+              permit.s,                                 // signature s
             ],
             chainId: baseSepolia.id,
           },
@@ -119,7 +141,7 @@ export function useDeposit() {
         }
       }
     },
-    [address, walletClient, balance, writeContract]
+    [address, walletClient, balance, writeContract, calculateSplit]
   )
 
   // Track confirming state
@@ -144,6 +166,8 @@ export function useDeposit() {
 
   return {
     deposit,
+    calculateSplit,
+    defaultGasRatioPercent: GAS_RESERVE_CONSTANTS.defaultGasRatioPercent,
     status,
     error,
     isPending: isPending || isConfirming || status === 'signing',
