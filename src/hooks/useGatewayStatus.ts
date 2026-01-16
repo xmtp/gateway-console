@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { GATEWAY_URL } from '@/lib/constants'
+import { GATEWAY_URL, GATEWAY_HEALTH_URL } from '@/lib/constants'
 
 export type GatewayStatus = 'connected' | 'disconnected' | 'checking' | 'unconfigured'
 
 /**
  * Hook to check if the XMTP gateway service is running
- * Pings the gateway URL periodically to determine connectivity
+ * Pings the gateway health endpoint periodically to determine connectivity
  */
 export function useGatewayStatus() {
   const [status, setStatus] = useState<GatewayStatus>(
@@ -21,48 +21,21 @@ export function useGatewayStatus() {
     }
 
     // Show checking state unless this is a background re-check while already connected
-    // (disconnected state should show spinner to indicate reconnection attempt)
     setStatus((current) =>
       isBackgroundCheck && current === 'connected' ? current : 'checking'
     )
 
     try {
-      // The gateway is a gRPC server (HTTP/2 binary protocol), not HTTP/1.1
-      // Regular fetch() won't work, so we use WebSocket with timing detection
-      // Connection refused fails fast (< 50ms), server responding with wrong protocol takes longer
-      const wsUrl = GATEWAY_URL.replace(/^http/, 'ws')
-      const startTime = performance.now()
-
-      const connected = await new Promise<boolean>((resolve) => {
-        const timeout = setTimeout(() => resolve(false), 3000)
-        const ws = new WebSocket(wsUrl)
-
-        const handleResult = () => {
-          clearTimeout(timeout)
-          const elapsed = performance.now() - startTime
-          // Connection refused typically fails in < 30ms
-          // Protocol errors (server responding) take 50ms+ due to TCP handshake
-          // Use 40ms threshold to distinguish
-          resolve(elapsed > 40)
-          try { ws.close() } catch { /* ignore */ }
-        }
-
-        ws.onopen = () => {
-          clearTimeout(timeout)
-          ws.close()
-          resolve(true)
-        }
-        ws.onerror = handleResult
-        ws.onclose = handleResult
+      const response = await fetch(GATEWAY_HEALTH_URL, {
+        method: 'GET',
+        signal: AbortSignal.timeout(3000),
       })
 
-      if (connected) {
+      if (response.ok) {
         consecutiveFailures.current = 0
         setStatus('connected')
       } else {
         consecutiveFailures.current++
-        // On background checks, require 2+ consecutive failures to avoid flaky UI
-        // On initial/manual checks, show disconnected immediately
         if (!isBackgroundCheck || consecutiveFailures.current >= 2) {
           setStatus('disconnected')
         }
@@ -70,6 +43,8 @@ export function useGatewayStatus() {
       setLastChecked(new Date())
     } catch {
       consecutiveFailures.current++
+      // On background checks, require 2+ consecutive failures to avoid flaky UI
+      // On initial/manual checks, show disconnected immediately
       if (!isBackgroundCheck || consecutiveFailures.current >= 2) {
         setStatus('disconnected')
       }

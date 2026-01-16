@@ -15,12 +15,13 @@ import {
 } from '@/components/messaging'
 import { MobileHeader } from '@/components/layout'
 import { useXMTP, WALLET_USER_ID } from '@/contexts/XMTPContext'
+import { XMTPStatus } from '@/components/xmtp'
 import { useMessaging } from '@/contexts/MessagingContext'
 import { useUsers } from '@/hooks/useUsers'
 import { useENSName } from '@/hooks/useENSName'
 import { APP_NAME } from '@/lib/constants'
-import { ArrowDown } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Send } from 'lucide-react'
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout'
 import { cn } from '@/lib/utils'
 
@@ -31,16 +32,16 @@ function DeveloperSidebar() {
       {/* Explainer */}
       <div className="p-3 border-b border-zinc-800/50">
         <p className="text-xs text-zinc-400 leading-relaxed">
-          XMTP uses an "apps pay" model—your app covers messaging costs, not your users. Connect your wallet, fund your app's payer wallet, then send test messages to see fees in action.
+          Connect your wallet to get testnet tokens and fund a gateway. Then send test messages to see fees in action.
         </p>
       </div>
 
-      {/* Step 1: Fund App */}
+      {/* Step 1: Get Tokens */}
       <div className="p-3 border-b border-zinc-800/50 space-y-2.5">
         <div className="flex items-center gap-2.5">
           <span className="flex items-center justify-center w-5 h-5 rounded bg-zinc-700/50 text-zinc-300 text-[10px] font-mono font-bold ring-1 ring-zinc-600/50">1</span>
           <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">
-            Fund App
+            Get Tokens
           </span>
         </div>
 
@@ -53,31 +54,37 @@ function DeveloperSidebar() {
           <UserBalance />
           <FaucetDialog />
         </div>
+      </div>
 
-        {/* Arrow indicator */}
-        <div className="flex justify-center py-1">
-          <ArrowDown className="h-3.5 w-3.5 text-zinc-600" />
+      {/* Step 2: Deposit to Payer */}
+      <div className="p-3 border-b border-zinc-800/50 space-y-2.5">
+        <div className="flex items-center gap-2.5">
+          <span className="flex items-center justify-center w-5 h-5 rounded bg-zinc-700/50 text-zinc-300 text-[10px] font-mono font-bold ring-1 ring-zinc-600/50">2</span>
+          <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">
+            Deposit Tokens
+          </span>
         </div>
 
         {/* Payer Wallet Card */}
         <div className="bg-gradient-to-b from-zinc-900 to-zinc-900/50 rounded-lg p-3 space-y-2 ring-1 ring-zinc-800/50">
           <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">
-            Payer Wallet
+            {APP_NAME || 'Payer Wallet'}
           </div>
           <BalanceDisplay />
           <DepositDialog />
         </div>
       </div>
 
-      {/* Step 2: Test As User */}
+      {/* Step 3: Test Messaging Fees */}
       <div className="flex-1 flex flex-col min-h-0">
-        <div className="px-3 pt-3">
+        <div className="px-3 pt-3 pb-2 space-y-1.5">
           <div className="flex items-center gap-2.5">
-            <span className="flex items-center justify-center w-5 h-5 rounded bg-zinc-700/50 text-zinc-300 text-[10px] font-mono font-bold ring-1 ring-zinc-600/50">2</span>
+            <span className="flex items-center justify-center w-5 h-5 rounded bg-zinc-700/50 text-zinc-300 text-[10px] font-mono font-bold ring-1 ring-zinc-600/50">3</span>
             <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">
-              Test As User
+              Test Messaging Fees
             </span>
           </div>
+          <p className="text-[11px] text-zinc-500 pl-7">Select a user</p>
         </div>
         <UserList />
       </div>
@@ -92,7 +99,7 @@ function truncateAddress(address: string): string {
 
 // Main app content - uses responsive layout context
 function AppContent() {
-  const { client, isConnecting, activeUserId: xmtpActiveUserId } = useXMTP()
+  const { client, isConnecting, error: xmtpError, activeUserId: xmtpActiveUserId } = useXMTP()
   const { activePanel, isMobile } = useResponsiveLayout()
   const { peerAddress, groupName, conversationType } = useMessaging()
   const { activeUser } = useUsers()
@@ -288,10 +295,48 @@ function AppContent() {
               </div>
             </div>
           ) : (
-            <main className="flex-1 flex flex-col items-center justify-center p-8">
-              <p className="text-muted-foreground">
-                Select a user to start messaging
-              </p>
+            <main className="flex-1 flex items-center justify-center p-8">
+              {xmtpError ? (
+                <XMTPStatus />
+              ) : (
+                <div className="flex items-start gap-8 max-w-lg">
+                  {/* Left: Visual element */}
+                  <div className="shrink-0">
+                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center ring-1 ring-zinc-700/50">
+                      <Send className="h-8 w-8 text-zinc-500" />
+                    </div>
+                  </div>
+
+                  {/* Right: Text content */}
+                  <div className="flex flex-col gap-4 pt-2">
+                    <div className="space-y-1.5">
+                      <h3 className="text-base font-medium text-foreground">Start a test conversation</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        Select a user from the list to send messages and see how XMTP fees work on Base Sepolia testnet.
+                      </p>
+                    </div>
+
+                    {/* What you'll see */}
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/60">What you'll see</span>
+                      <div className="flex flex-col gap-1.5 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-2">
+                          <span className="w-1 h-1 rounded-full bg-muted-foreground/40" />
+                          Per-message cost calculations
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <span className="w-1 h-1 rounded-full bg-muted-foreground/40" />
+                          Storage + base fee breakdown
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <span className="w-1 h-1 rounded-full bg-muted-foreground/40" />
+                          Real-time balance updates
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </main>
           )}
         </div>

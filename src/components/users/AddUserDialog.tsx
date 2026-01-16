@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/responsive-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { UserPlus } from 'lucide-react'
+import { User } from 'lucide-react'
 
 interface AddUserDialogProps {
   onAddUser: (name: string) => void
@@ -32,9 +32,9 @@ export function AddUserDialog({ onAddUser }: AddUserDialogProps) {
       <ResponsiveDialogTrigger asChild>
         <button className="w-full flex items-center gap-2.5 p-2 rounded-lg text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800/30 transition-all duration-150 cursor-pointer">
           <div className="w-7 h-7 rounded-full border border-dashed border-zinc-700 flex items-center justify-center">
-            <UserPlus className="h-3.5 w-3.5" />
+            <User className="h-3.5 w-3.5" />
           </div>
-          <span className="text-xs">Add ephemeral user</span>
+          <span className="text-xs">Use ephemeral sender</span>
         </button>
       </ResponsiveDialogTrigger>
       <ResponsiveDialogContent>

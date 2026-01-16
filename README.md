@@ -153,6 +153,28 @@ cost = (messageFee + storageFee × bytes × days) × gasOverhead
 
 Longer messages cost more (more bytes to store). The cost display updates in real-time as your message length changes.
 
+### Dual Fee Model
+
+XMTP uses two types of fees, each paid from a separate balance:
+
+**Message Fees (Payer Registry)**
+
+Paid from your mUSD balance on Base Sepolia. These cover:
+- Sending messages
+- Message storage (bytes × days × rate)
+
+**Gas Fees (XMTP Appchain)**
+
+Paid from your xUSD gas reserve on the XMTP Appchain (L3). These cover:
+- Creating groups
+- Adding/removing group members
+- Updating group metadata
+- Linking/unlinking wallets to identity
+
+When you deposit funds, they're automatically split: 75% goes to your messaging balance, 25% to your gas reserve. Both balances are displayed in the sidebar with operation estimates.
+
+The deposit preview shows exactly how your funds will be allocated before you confirm.
+
 ---
 
 ## Deploy to Railway

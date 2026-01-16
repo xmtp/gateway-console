@@ -1,17 +1,41 @@
 import { usePayerBalance } from '@/hooks/usePayerBalance'
+import { useGasReserveBalance } from '@/hooks/useGasReserveBalance'
 import { GATEWAY_PAYER_ADDRESS } from '@/lib/constants'
 import { CopyableAddress } from '@/components/ui/copyable-address'
 import { Loader2, AlertTriangle } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
 export function BalanceDisplay() {
   const {
     formattedMessages,
-    formattedBalance,
+    rawBalance: messagingBalance,
     warningLevel,
     isLoading,
     error,
   } = usePayerBalance()
+
+  const {
+    balance: gasBalance,
+    formattedBalance: formattedGasBalance,
+  } = useGasReserveBalance()
+
+  // Calculate combined total balance
+  // Note: messagingBalance is 6 decimals (xUSD token), gasBalance is 18 decimals (native)
+  const messagingDollars = Number(messagingBalance ?? 0n) / 1_000_000
+  const gasDollars = Number(gasBalance ?? 0n) / 1_000_000_000_000_000_000
+  const totalBalanceDollars = messagingDollars + gasDollars
+  const formattedTotalBalance = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(totalBalanceDollars)
 
   // No payer address configured
   if (!GATEWAY_PAYER_ADDRESS) {
@@ -74,11 +98,41 @@ export function BalanceDisplay() {
         </div>
       </div>
 
-      {/* Balance row */}
-      <div className="flex items-center justify-between pt-1 border-t border-zinc-800">
-        <span className="text-xs text-zinc-500 font-mono">mUSD Balance</span>
-        <span className="text-xs text-zinc-300 font-mono tabular-nums">{formattedBalance}</span>
-      </div>
+      {/* mUSD Balance row */}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center justify-between pt-1 border-t border-zinc-800 cursor-help">
+              <span className="text-xs text-zinc-500 font-mono">mUSD Balance</span>
+              <span className="text-xs text-zinc-300 font-mono tabular-nums">{formattedTotalBalance}</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="right" sideOffset={22} className="max-w-xs">
+            <div className="space-y-2 text-xs">
+              <p className="font-medium">Balance Breakdown</p>
+              <div className="space-y-2 text-muted-foreground">
+                <div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-white">Messaging</span>
+                    <span className="font-mono">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(messagingBalance ?? 0n) / 1_000_000)}</span>
+                  </div>
+                  <p className="text-[10px] text-zinc-500">Pays for sending messages. Held on Base Sepolia.</p>
+                </div>
+                <div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-white">Gas Reserve</span>
+                    <span className="font-mono">{formattedGasBalance}</span>
+                  </div>
+                  <p className="text-[10px] text-zinc-500">Pays for on-chain operations like creating groups and adding members. Held on XMTP Appchain.</p>
+                </div>
+              </div>
+              <p className="text-[10px] text-zinc-500 pt-1 border-t border-white/10">
+                Deposits are automatically split between these two balances.
+              </p>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       {/* Warning */}
       {warningLevel === 'critical' && (

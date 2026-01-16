@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import {
   useAccount,
   useWalletClient,
@@ -6,18 +6,26 @@ import {
   useWaitForTransactionReceipt,
   useReadContract,
 } from 'wagmi'
-import { parseUnits, zeroAddress } from 'viem'
+import { parseUnits } from 'viem'
 import { baseSepolia } from 'wagmi/chains'
 import { generatePermitSignature } from '@/lib/permit'
 import { DepositSplitterAbi } from '@/abi/DepositSplitter'
 import { MockUnderlyingFeeTokenAbi } from '@/abi/MockUnderlyingFeeToken'
-import { CONTRACTS, TOKENS, GATEWAY_PAYER_ADDRESS } from '@/lib/constants'
+import {
+  CONTRACTS,
+  TOKENS,
+  GATEWAY_PAYER_ADDRESS,
+  GAS_RESERVE_CONSTANTS,
+} from '@/lib/constants'
 
 export type DepositStatus = 'idle' | 'signing' | 'pending' | 'confirming' | 'success' | 'error'
 
 export function useDeposit() {
   const [status, setStatus] = useState<DepositStatus>('idle')
   const [error, setError] = useState<Error | null>(null)
+
+  // Track the last deposit amounts for optimistic updates
+  const lastDepositRef = useRef<{ payerAmount: bigint; appChainAmount: bigint } | null>(null)
 
   const { address } = useAccount()
   const { data: walletClient } = useWalletClient({ chainId: baseSepolia.id })
@@ -37,8 +45,62 @@ export function useDeposit() {
     chainId: baseSepolia.id,
   })
 
+  /**
+   * Calculate deposit split to TARGET a 75/25 allocation based on current balances.
+   *
+   * Instead of blindly splitting each deposit 75/25, this calculates what's needed
+   * to bring the TOTAL balances toward the target ratio.
+   *
+   * @param depositAmount Amount being deposited
+   * @param currentMessaging Current messaging balance (Payer Registry)
+   * @param currentGas Current gas reserve balance (Appchain)
+   * @param targetMessagingPercent Target percentage for messaging (default 75%)
+   * @returns Object with payerAmount and appChainAmount
+   */
+  const calculateTargetedSplit = useCallback((
+    depositAmount: bigint,
+    currentMessaging: bigint,
+    currentGas: bigint,
+    targetMessagingPercent: bigint = 100n - GAS_RESERVE_CONSTANTS.defaultGasRatioPercent
+  ) => {
+    const targetGasPercent = 100n - targetMessagingPercent
+
+    // Calculate what totals will be after deposit
+    const totalAfter = currentMessaging + currentGas + depositAmount
+
+    // Calculate target balances
+    const targetMessaging = (totalAfter * targetMessagingPercent) / 100n
+    const targetGas = (totalAfter * targetGasPercent) / 100n
+
+    // Calculate how much each bucket needs to reach target
+    const messagingDelta = targetMessaging > currentMessaging
+      ? targetMessaging - currentMessaging
+      : 0n
+    const gasDelta = targetGas > currentGas
+      ? targetGas - currentGas
+      : 0n
+
+    // If messaging is already over target, all goes to gas
+    if (messagingDelta === 0n) {
+      return { payerAmount: 0n, appChainAmount: depositAmount }
+    }
+
+    // If gas is already over target, all goes to messaging
+    if (gasDelta === 0n) {
+      return { payerAmount: depositAmount, appChainAmount: 0n }
+    }
+
+    // Both need funds - deltas should sum to depositAmount
+    // (math guarantees this when both are positive)
+    return { payerAmount: messagingDelta, appChainAmount: gasDelta }
+  }, [])
+
   const deposit = useCallback(
-    async (amountString: string) => {
+    async (
+      amountString: string,
+      currentMessaging: bigint,
+      currentGas: bigint
+    ) => {
       if (!address || !walletClient) {
         setError(new Error('Wallet not connected'))
         return
@@ -55,6 +117,24 @@ export function useDeposit() {
         setError(new Error('Insufficient balance'))
         return
       }
+
+      // Calculate the targeted split based on current balances
+      const { payerAmount, appChainAmount } = calculateTargetedSplit(
+        amount,
+        currentMessaging,
+        currentGas
+      )
+
+      console.log('[Deposit] Split calculation:', {
+        depositAmount: amount.toString(),
+        currentMessaging: currentMessaging.toString(),
+        currentGas: currentGas.toString(),
+        payerAmount: payerAmount.toString(),
+        appChainAmount: appChainAmount.toString(),
+      })
+
+      // Store for optimistic updates
+      lastDepositRef.current = { payerAmount, appChainAmount }
 
       setStatus('signing')
       setError(null)
@@ -74,24 +154,23 @@ export function useDeposit() {
 
         setStatus('pending')
 
-        // Deposit with permit
-        // We deposit all to PayerRegistry (messaging fees), nothing to AppChain
+        // Deposit with permit - split between messaging and gas reserve
         writeContract(
           {
             address: CONTRACTS.depositSplitter,
             abi: DepositSplitterAbi,
             functionName: 'depositFromUnderlyingWithPermit',
             args: [
-              GATEWAY_PAYER_ADDRESS,  // payer - the gateway's payer address
-              BigInt(amount),         // payerRegistryAmount - deposit for messaging
-              zeroAddress,            // appChainRecipient - not used
-              0n,                     // appChainAmount - 0 for this demo
-              0n,                     // appChainGasLimit - not used
-              0n,                     // appChainMaxFeePerGas - not used
-              deadline,               // permit deadline
-              permit.v,               // signature v
-              permit.r,               // signature r
-              permit.s,               // signature s
+              GATEWAY_PAYER_ADDRESS,                    // payer - the gateway's payer address
+              payerAmount,                              // payerRegistryAmount - messaging fees
+              GATEWAY_PAYER_ADDRESS,                     // appChainRecipient - gas reserve recipient
+              appChainAmount,                           // appChainAmount - gas reserve funds
+              GAS_RESERVE_CONSTANTS.bridgeGasLimit,     // appChainGasLimit - for bridging
+              GAS_RESERVE_CONSTANTS.bridgeMaxFeePerGas, // appChainMaxFeePerGas - for bridging
+              deadline,                                 // permit deadline
+              permit.v,                                 // signature v
+              permit.r,                                 // signature r
+              permit.s,                                 // signature s
             ],
             chainId: baseSepolia.id,
           },
@@ -119,7 +198,7 @@ export function useDeposit() {
         }
       }
     },
-    [address, walletClient, balance, writeContract]
+    [address, walletClient, balance, writeContract, calculateTargetedSplit]
   )
 
   // Track confirming state
@@ -140,10 +219,14 @@ export function useDeposit() {
   const reset = useCallback(() => {
     setStatus('idle')
     setError(null)
+    lastDepositRef.current = null
   }, [])
 
   return {
     deposit,
+    calculateTargetedSplit,
+    targetMessagingPercent: 100n - GAS_RESERVE_CONSTANTS.defaultGasRatioPercent,
+    targetGasPercent: GAS_RESERVE_CONSTANTS.defaultGasRatioPercent,
     status,
     error,
     isPending: isPending || isConfirming || status === 'signing',
@@ -152,5 +235,7 @@ export function useDeposit() {
     balance,
     reset,
     refetchBalance,
+    // Last deposit amounts for optimistic updates
+    lastDeposit: lastDepositRef.current,
   }
 }
