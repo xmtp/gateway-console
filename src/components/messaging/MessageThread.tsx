@@ -142,7 +142,7 @@ function MessageBubble({ message, isOwn, showSender = false, senderName, memberN
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="text-[10px] text-muted-foreground/40 tabular-nums cursor-help shrink-0">
+          <span className="text-[10px] text-zinc-500/60 font-mono tabular-nums cursor-help shrink-0">
             {messageCost.formattedCost}
           </span>
         </TooltipTrigger>
@@ -175,6 +175,9 @@ function MessageBubble({ message, isOwn, showSender = false, senderName, memberN
                 <span>{messageCost.formattedCost}</span>
               </div>
             </div>
+            <p className="text-[10px] text-zinc-500 pt-1 border-t border-white/10">
+              Paid from Messaging Balance on Base Sepolia
+            </p>
           </div>
         </TooltipContent>
       </Tooltip>
