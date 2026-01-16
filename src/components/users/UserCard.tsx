@@ -1,6 +1,10 @@
-import { X } from 'lucide-react'
-import { CopyableAddress } from '@/components/ui/copyable-address'
+import { useState } from 'react'
+import { X, Copy, Check } from 'lucide-react'
 import type { EphemeralUser } from '@/types/user'
+
+function truncateAddress(address: string): string {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`
+}
 
 interface UserCardProps {
   user: EphemeralUser
@@ -34,6 +38,19 @@ function getAvatarColor(address: string): string {
 }
 
 export function UserCard({ user, isActive, onSelect, onDelete }: UserCardProps) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      await navigator.clipboard.writeText(user.address)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
+
   return (
     <div
       className={`group flex items-center gap-2.5 p-2 rounded-lg cursor-pointer transition-all duration-150 ${
@@ -55,8 +72,23 @@ export function UserCard({ user, isActive, onSelect, onDelete }: UserCardProps) 
       {/* Info */}
       <div className="flex-1 min-w-0 flex flex-col items-start">
         <div className="text-sm font-medium text-zinc-300 truncate">{user.name}</div>
-        <CopyableAddress address={user.address} className="text-[10px] text-zinc-600" />
+        <div className="text-[10px] font-mono text-zinc-600">
+          {truncateAddress(user.address)}
+        </div>
       </div>
+
+      {/* Copy */}
+      <button
+        className="opacity-0 group-hover:opacity-100 p-1 rounded text-zinc-600 hover:bg-zinc-700/50 hover:text-zinc-400 active:scale-95 transition-all duration-150"
+        onClick={handleCopy}
+        title="Copy address"
+      >
+        {copied ? (
+          <Check className="h-3.5 w-3.5 text-green-500" />
+        ) : (
+          <Copy className="h-3.5 w-3.5" />
+        )}
+      </button>
 
       {/* Delete */}
       <button
@@ -67,6 +99,7 @@ export function UserCard({ user, isActive, onSelect, onDelete }: UserCardProps) 
             onDelete()
           }
         }}
+        title="Delete user"
       >
         <X className="h-3.5 w-3.5" />
       </button>

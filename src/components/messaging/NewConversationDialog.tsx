@@ -23,6 +23,7 @@ import {
   XCircle,
   AlertCircle,
 } from 'lucide-react'
+import { GasOperationCostBadge } from './GasOperationCostBadge'
 import {
   Tooltip,
   TooltipContent,
@@ -234,26 +235,29 @@ export function NewConversationDialog() {
           </div>
         </div>
 
-        <div className="flex justify-end gap-2">
-          <Button
-            variant="outline"
-            onClick={() => handleOpenChange(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleStartConversation}
-            disabled={status !== 'reachable' || isStarting}
-          >
-            {isStarting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Starting...
-              </>
-            ) : (
-              'Start Chat'
-            )}
-          </Button>
+        <div className="flex items-center justify-between gap-2">
+          <GasOperationCostBadge operation="createDm" tooltipSide="right" />
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => handleOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleStartConversation}
+              disabled={status !== 'reachable' || isStarting}
+            >
+              {isStarting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Starting...
+                </>
+              ) : (
+                'Start Chat'
+              )}
+            </Button>
+          </div>
         </div>
       </ResponsiveDialogContent>
     </ResponsiveDialog>

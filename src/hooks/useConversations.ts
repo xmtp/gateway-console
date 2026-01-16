@@ -48,6 +48,8 @@ export interface ConversationData {
   id: string
   type: 'dm' | 'group'
   name: string | null
+  description: string | null // For groups
+  imageUrl: string | null // For groups
   peerInboxId: string | null // For DMs
   peerAddress: string | null // For DMs - primary address
   peerAddresses: string[] // For DMs - all linked addresses
@@ -245,6 +247,8 @@ export function useConversations() {
             id: dm.id,
             type: 'dm' as const,
             name: null,
+            description: null,
+            imageUrl: null,
             peerInboxId: peer?.inboxId ?? null,
             peerAddress: peerAddresses[0] ?? null,
             peerAddresses,
@@ -268,6 +272,8 @@ export function useConversations() {
             id: group.id,
             type: 'group' as const,
             name: group.name ?? null,
+            description: group.description ?? null,
+            imageUrl: group.imageUrl ?? null,
             peerInboxId: null,
             peerAddress: null,
             peerAddresses: [],
@@ -889,6 +895,63 @@ export function useGroupAdmin(group: Group | null) {
     }
   }, [group, canRemoveMembers, loadMembers])
 
+  const updateName = useCallback(async (name: string): Promise<boolean> => {
+    if (!group) {
+      setError(new Error('No group selected'))
+      return false
+    }
+
+    setError(null)
+
+    try {
+      await group.updateName(name)
+      return true
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error('Failed to update group name')
+      console.error('Error updating group name:', err)
+      setError(err)
+      return false
+    }
+  }, [group])
+
+  const updateDescription = useCallback(async (description: string): Promise<boolean> => {
+    if (!group) {
+      setError(new Error('No group selected'))
+      return false
+    }
+
+    setError(null)
+
+    try {
+      await group.updateDescription(description)
+      return true
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error('Failed to update group description')
+      console.error('Error updating group description:', err)
+      setError(err)
+      return false
+    }
+  }, [group])
+
+  const updateImageUrl = useCallback(async (imageUrl: string): Promise<boolean> => {
+    if (!group) {
+      setError(new Error('No group selected'))
+      return false
+    }
+
+    setError(null)
+
+    try {
+      await group.updateImageUrl(imageUrl)
+      return true
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error('Failed to update group image')
+      console.error('Error updating group image:', err)
+      setError(err)
+      return false
+    }
+  }, [group])
+
   // Load members when group changes
   useEffect(() => {
     loadMembers()
@@ -905,6 +968,9 @@ export function useGroupAdmin(group: Group | null) {
     canRemoveMembers,
     addMember,
     removeMember,
+    updateName,
+    updateDescription,
+    updateImageUrl,
     refresh: loadMembers,
   }
 }

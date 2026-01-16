@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import type { DecodedMessage, Group } from '@xmtp/browser-sdk'
 import { GroupSettingsDialog } from './GroupSettingsDialog'
 import { getActualMessageSize, calculateMessageCost, formatMicroCost, getMessageBytes } from '@/lib/messageCosting'
+import { GasOperationCostBadge } from './GasOperationCostBadge'
 import {
   Tooltip,
   TooltipContent,
@@ -88,81 +89,25 @@ function formatGroupUpdate(
   // Handle member additions - list who was added
   if (content.addedInboxes?.length) {
     const names = content.addedInboxes.map(m => resolveName(m.inboxId)).join(', ')
-    parts.push(`Added: ${names}`)
+    parts.push(`Added ${names} to group`)
   }
 
   // Handle member removals - list who was removed
   if (content.removedInboxes?.length) {
     const names = content.removedInboxes.map(m => resolveName(m.inboxId)).join(', ')
-    parts.push(`Removed: ${names}`)
+    parts.push(`Removed ${names} from group`)
   }
 
   return parts.length > 0 ? parts.join(' · ') : 'Group updated'
 }
 
 /**
- * Calculate the size of a GroupUpdated message content
- * Estimates the protobuf-encoded size of the structured content
+ * Determine the gas operation type for a group update
  */
-function estimateGroupUpdateSize(content: GroupUpdatedContent): number {
-  let size = 0
-
-  // Estimate size based on the content fields
-  if (content.initiatedByInboxId) {
-    size += content.initiatedByInboxId.length + 2 // field tag + length prefix
-  }
-
-  if (content.metadataFieldChanges?.length) {
-    for (const change of content.metadataFieldChanges) {
-      size += (change.fieldName?.length || 0) + 2
-      size += (change.oldValue?.length || 0) + 2
-      size += (change.newValue?.length || 0) + 2
-      size += 4 // nested message overhead
-    }
-  }
-
-  if (content.addedInboxes?.length) {
-    for (const inbox of content.addedInboxes) {
-      size += (inbox.inboxId?.length || 0) + 4 // field + nested message overhead
-    }
-  }
-
-  if (content.removedInboxes?.length) {
-    for (const inbox of content.removedInboxes) {
-      size += (inbox.inboxId?.length || 0) + 4
-    }
-  }
-
-  return size
-}
-
-/**
- * Calculate actual payload size for a group update message
- */
-function getGroupUpdateMessageSize(message: {
-  id: string
-  content: GroupUpdatedContent
-  conversationId: string
-  senderInboxId: string
-  sentAtNs: bigint
-}): number {
-  const contentBytes = estimateGroupUpdateSize(message.content)
-
-  // Message envelope overhead (similar to text messages)
-  const messageEnvelopeOverhead =
-    message.id.length + 2 + // id field
-    8 + 1 + // sentAtNs
-    message.conversationId.length + 2 + // convo_id
-    message.senderInboxId.length + 2 + // sender_inbox_id
-    2 // kind + deliveryStatus
-
-  // Encryption overhead (AES-GCM)
-  const encryptionOverhead = 28
-
-  // ContentTypeId overhead for group_membership_change type
-  const contentTypeOverhead = 40 // "xmtp.org" + "group_membership_change" + versions
-
-  return contentBytes + messageEnvelopeOverhead + encryptionOverhead + contentTypeOverhead
+function getGroupUpdateOperationType(content: GroupUpdatedContent): 'addMember' | 'removeMember' | 'updateMetadata' {
+  if (content.addedInboxes?.length) return 'addMember'
+  if (content.removedInboxes?.length) return 'removeMember'
+  return 'updateMetadata'
 }
 
 function MessageBubble({ message, isOwn, showSender = false, senderName, memberNames }: MessageBubbleProps) {
@@ -183,24 +128,13 @@ function MessageBubble({ message, isOwn, showSender = false, senderName, memberN
     }
   }, [message, content])
 
-  // Calculate cost for group update messages
-  const groupUpdateCost = useMemo(() => {
+  // Determine gas operation type for group update messages
+  const groupUpdateOperation = useMemo(() => {
     if (typeof content === 'string') return null
     if (!content || typeof content !== 'object' || !('initiatedByInboxId' in content)) return null
 
-    const payloadSize = getGroupUpdateMessageSize({
-      id: message.id,
-      content: content as GroupUpdatedContent,
-      conversationId: message.conversationId,
-      senderInboxId: message.senderInboxId,
-      sentAtNs: message.sentAtNs,
-    })
-
-    return {
-      ...calculateMessageCost(payloadSize),
-      payloadSize,
-    }
-  }, [message, content])
+    return getGroupUpdateOperationType(content as GroupUpdatedContent)
+  }, [content])
 
   // Handle non-text content types (GroupUpdated, etc.)
   if (typeof content !== 'string') {
@@ -211,49 +145,17 @@ function MessageBubble({ message, isOwn, showSender = false, senderName, memberN
 
       const updateText = formatGroupUpdate(content as GroupUpdatedContent, memberNames)
       return (
-        <div className="flex justify-center py-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full cursor-help inline-flex items-center gap-1.5">
-                  {updateText}
-                  {groupUpdateCost && (
-                    <span className="text-[10px] text-zinc-500/60 font-mono tabular-nums">
-                      {groupUpdateCost.formattedCost}
-                    </span>
-                  )}
-                </span>
-              </TooltipTrigger>
-              {groupUpdateCost && (
-                <TooltipContent side="bottom" className="max-w-xs">
-                  <div className="space-y-1.5 text-xs">
-                    <p className="font-medium">Group Update Cost</p>
-                    <div className="space-y-0.5 text-muted-foreground">
-                      <div className="flex justify-between gap-4">
-                        <span>Payload size:</span>
-                        <span>{groupUpdateCost.payloadSize} bytes</span>
-                      </div>
-                      <div className="flex justify-between gap-4">
-                        <span>Base fee:</span>
-                        <span>{formatMicroCost(groupUpdateCost.breakdown.messageFee)}</span>
-                      </div>
-                      <div className="flex justify-between gap-4">
-                        <span>Storage (60 days):</span>
-                        <span>{formatMicroCost(groupUpdateCost.breakdown.storageFee)}</span>
-                      </div>
-                      <div className="flex justify-between gap-4 pt-1 border-t border-white/10 font-medium text-white">
-                        <span>Total:</span>
-                        <span>{groupUpdateCost.formattedCost}</span>
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-zinc-500 pt-1 border-t border-white/10">
-                      Paid from Messaging Balance on Base Sepolia
-                    </p>
-                  </div>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
+        <div className="flex flex-col items-center py-2 gap-0.5">
+          <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">
+            {updateText}
+          </span>
+          {groupUpdateOperation && (
+            <GasOperationCostBadge
+              operation={groupUpdateOperation}
+              compact
+              tooltipSide="bottom"
+            />
+          )}
         </div>
       )
     }
@@ -400,12 +302,27 @@ export function MessageThread() {
       <div className="hidden md:flex p-3 border-b items-center gap-2 min-h-[52px]">
         {isGroup ? (
           <>
-            <div className="w-6 h-6 rounded-full flex items-center justify-center bg-purple-500/10">
-              <Users className="h-3.5 w-3.5 text-purple-500" />
+            {(selectedConversation as Group).imageUrl ? (
+              <img
+                src={(selectedConversation as Group).imageUrl ?? ''}
+                alt=""
+                className="w-6 h-6 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-6 h-6 rounded-full flex items-center justify-center bg-purple-500/10">
+                <Users className="h-3.5 w-3.5 text-purple-500" />
+              </div>
+            )}
+            <div className="flex items-baseline gap-1.5 min-w-0 flex-1">
+              <span className="font-medium text-sm">
+                {groupName || 'Unnamed Group'}
+              </span>
+              {(selectedConversation as Group).description && (
+                <span className="text-xs text-muted-foreground truncate">
+                  {(selectedConversation as Group).description}
+                </span>
+              )}
             </div>
-            <span className="font-medium text-sm flex-1">
-              {groupName || 'Unnamed Group'}
-            </span>
             <Button
               variant="outline"
               size="sm"

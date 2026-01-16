@@ -142,6 +142,11 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
         dbPath,
       })
 
+      // Debug: expose client on window for console debugging
+      if (import.meta.env.DEV) {
+        (window as unknown as { __XMTP_CLIENT__: Client | null }).__XMTP_CLIENT__ = newClient
+      }
+
       // Store in ref for cleanup
       clientRef.current = newClient
 
@@ -229,6 +234,11 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
         installationId: newClient.installationId,
         dbPath,
       })
+
+      // Debug: expose client on window for console debugging
+      if (import.meta.env.DEV) {
+        (window as unknown as { __XMTP_CLIENT__: Client | null }).__XMTP_CLIENT__ = newClient
+      }
 
       clientRef.current = newClient
       setClient(newClient)

@@ -61,9 +61,17 @@ function ConversationItem({ conversation, isSelected, onSelect }: ConversationIt
     >
       <div className="flex items-start gap-3">
         {isGroup ? (
-          <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-purple-500/10">
-            <Users className="h-5 w-5 text-purple-500" />
-          </div>
+          conversation.imageUrl ? (
+            <img
+              src={conversation.imageUrl}
+              alt=""
+              className="flex-shrink-0 w-10 h-10 rounded-full object-cover"
+            />
+          ) : (
+            <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-purple-500/10">
+              <Users className="h-5 w-5 text-purple-500" />
+            </div>
+          )
         ) : ensAvatar ? (
           <img
             src={ensAvatar}
@@ -77,9 +85,16 @@ function ConversationItem({ conversation, isSelected, onSelect }: ConversationIt
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <span className="font-medium text-sm truncate">
-              {formatDisplayName()}
-            </span>
+            <div className="flex items-baseline gap-1.5 min-w-0 flex-1">
+              <span className="font-medium text-sm truncate">
+                {formatDisplayName()}
+              </span>
+              {isGroup && conversation.description && (
+                <span className="text-xs text-muted-foreground truncate">
+                  {conversation.description}
+                </span>
+              )}
+            </div>
             <span className="text-xs text-muted-foreground flex-shrink-0">
               {formatTime(conversation.lastMessageTime)}
             </span>

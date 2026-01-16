@@ -18,6 +18,7 @@ const GAS_ESTIMATES = {
   // Group operations (via GroupMessageBroadcaster)
   // Small message: ~93K, Large message: ~2.7M - using median estimate
   createGroup: 500_000n,
+  createDm: 500_000n, // DM creation is equivalent to a group with 1 participant
   addMember: 200_000n,
   removeMember: 150_000n,
   updateMetadata: 100_000n,
@@ -64,6 +65,7 @@ export interface GasReserveCalculation {
 
 const OPERATION_DESCRIPTIONS: Record<GasOperationType, string> = {
   createGroup: 'Create new group',
+  createDm: 'Start new conversation',
   addMember: 'Add member to group',
   removeMember: 'Remove member from group',
   updateMetadata: 'Update group metadata',

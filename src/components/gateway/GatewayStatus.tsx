@@ -1,5 +1,4 @@
 import { useGatewayStatus } from '@/hooks/useGatewayStatus'
-import { CONTRACTS_ENVIRONMENT } from '@/lib/constants'
 import { Loader2, Server } from 'lucide-react'
 
 export function GatewayStatus() {
@@ -31,11 +30,10 @@ export function GatewayStatus() {
           {statusText}
         </span>
       </div>
-      <div className="text-[10px] font-mono text-zinc-600 pl-3.5 space-y-0.5">
+      <div className="text-[10px] font-mono text-zinc-600 pl-3.5">
         <div className="truncate opacity-75" title={gatewayUrl}>
           {gatewayUrl || 'No URL configured'}
         </div>
-        <div className="opacity-75">{CONTRACTS_ENVIRONMENT || 'unknown'}</div>
       </div>
     </div>
   )

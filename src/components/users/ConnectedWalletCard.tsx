@@ -1,14 +1,20 @@
-import { useAccount, useWalletClient, useEnsName, useEnsAvatar } from 'wagmi'
+import { useState } from 'react'
+import { useAccount, useWalletClient, useEnsName, useEnsAvatar, useDisconnect } from 'wagmi'
 import { mainnet } from 'wagmi/chains'
-import { Wallet } from 'lucide-react'
-import { CopyableAddress } from '@/components/ui/copyable-address'
+import { Wallet, Copy, Check, X } from 'lucide-react'
 import { useXMTP, WALLET_USER_ID } from '@/contexts/XMTPContext'
 import { useUsers } from '@/hooks/useUsers'
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout'
 
+function truncateAddress(address: string): string {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`
+}
+
 export function ConnectedWalletCard() {
+  const [copied, setCopied] = useState(false)
   const { address, isConnected } = useAccount()
   const { data: walletClient } = useWalletClient()
+  const { disconnect } = useDisconnect()
   const { initializeWithWallet, activeUserId, isConnecting } = useXMTP()
   const { selectUser } = useUsers()
   const { isMobile, showConversations } = useResponsiveLayout()
@@ -25,6 +31,17 @@ export function ConnectedWalletCard() {
 
   if (!isConnected || !address) {
     return null
+  }
+
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      await navigator.clipboard.writeText(address)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
   }
 
   const isActive = activeUserId === WALLET_USER_ID
@@ -71,8 +88,37 @@ export function ConnectedWalletCard() {
             Connected
           </span>
         </div>
-        <CopyableAddress address={address} className="text-[10px] text-zinc-600" />
+        <div className="text-[10px] font-mono text-zinc-600">
+          {truncateAddress(address)}
+        </div>
       </div>
+
+      {/* Copy */}
+      <button
+        className="opacity-0 group-hover:opacity-100 p-1 rounded text-zinc-600 hover:bg-zinc-700/50 hover:text-zinc-400 active:scale-95 transition-all duration-150"
+        onClick={handleCopy}
+        title="Copy address"
+      >
+        {copied ? (
+          <Check className="h-3.5 w-3.5 text-green-500" />
+        ) : (
+          <Copy className="h-3.5 w-3.5" />
+        )}
+      </button>
+
+      {/* Disconnect */}
+      <button
+        className="opacity-0 group-hover:opacity-100 p-1 rounded text-zinc-600 hover:bg-red-500/20 hover:text-red-400 active:bg-red-500/30 active:text-red-300 active:scale-95 transition-all duration-150"
+        onClick={(e) => {
+          e.stopPropagation()
+          if (confirm('Disconnect wallet?')) {
+            disconnect()
+          }
+        }}
+        title="Disconnect wallet"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
 
       {/* Loading indicator */}
       {isLoading && (
