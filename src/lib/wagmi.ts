@@ -1,19 +1,53 @@
-import { http, createConfig } from 'wagmi'
+import '@rainbow-me/rainbowkit/styles.css'
+import { connectorsForWallets } from '@rainbow-me/rainbowkit'
+import {
+  metaMaskWallet,
+  coinbaseWallet,
+  walletConnectWallet,
+  rainbowWallet,
+  uniswapWallet,
+  phantomWallet,
+} from '@rainbow-me/rainbowkit/wallets'
+import { createConfig, http } from 'wagmi'
 import { baseSepolia, mainnet } from 'wagmi/chains'
-import { injected, walletConnect } from 'wagmi/connectors'
 import { SETTLEMENT_CHAIN_RPC_URL, MAINNET_RPC_URL } from './constants'
 import { xmtpAppchain } from './chains'
 
 const walletConnectProjectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
 
-export const config = createConfig({
-  chains: [baseSepolia, mainnet, xmtpAppchain],
-  connectors: [
-    injected(),
-    ...(walletConnectProjectId
-      ? [walletConnect({ projectId: walletConnectProjectId })]
-      : []),
+if (!walletConnectProjectId) {
+  throw new Error(
+    'Missing VITE_WALLETCONNECT_PROJECT_ID environment variable. ' +
+    'Get a free project ID at https://cloud.walletconnect.com and add it to .env.local'
+  )
+}
+
+const connectors = connectorsForWallets(
+  [
+    {
+      groupName: 'Popular',
+      wallets: [
+        metaMaskWallet,
+        coinbaseWallet,
+        uniswapWallet,
+        rainbowWallet,
+        phantomWallet,
+      ],
+    },
+    {
+      groupName: 'More',
+      wallets: [walletConnectWallet],
+    },
   ],
+  {
+    appName: 'XMTP Gateway Console',
+    projectId: walletConnectProjectId,
+  }
+)
+
+export const config = createConfig({
+  connectors,
+  chains: [baseSepolia, mainnet, xmtpAppchain],
   transports: {
     [baseSepolia.id]: http(SETTLEMENT_CHAIN_RPC_URL),
     [mainnet.id]: http(MAINNET_RPC_URL),

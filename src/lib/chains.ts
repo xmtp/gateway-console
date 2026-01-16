@@ -10,6 +10,8 @@ import { XMTP_CHAIN_ID, XMTP_APPCHAIN_RPC_URL } from './constants'
 export const xmtpAppchain = defineChain({
   id: XMTP_CHAIN_ID,
   name: 'XMTP Testnet',
+  iconUrl: '/xmtp-icon.svg',
+  iconBackground: '#000000',
   nativeCurrency: {
     name: 'XMTP USD',
     symbol: 'xUSD',
