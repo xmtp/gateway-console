@@ -44,21 +44,61 @@ export function useDeposit() {
   })
 
   /**
-   * Calculate deposit split amounts
-   * @param totalAmount Total amount to deposit
-   * @param gasRatioPercent Percentage to allocate to gas reserve (0-100)
+   * Calculate deposit split to TARGET a 75/25 allocation based on current balances.
+   *
+   * Instead of blindly splitting each deposit 75/25, this calculates what's needed
+   * to bring the TOTAL balances toward the target ratio.
+   *
+   * @param depositAmount Amount being deposited
+   * @param currentMessaging Current messaging balance (Payer Registry)
+   * @param currentGas Current gas reserve balance (Appchain)
+   * @param targetMessagingPercent Target percentage for messaging (default 75%)
    * @returns Object with payerAmount and appChainAmount
    */
-  const calculateSplit = useCallback((totalAmount: bigint, gasRatioPercent: bigint) => {
-    // Calculate gas reserve amount (rounded down)
-    const appChainAmount = (totalAmount * gasRatioPercent) / 100n
-    // Rest goes to payer registry
-    const payerAmount = totalAmount - appChainAmount
-    return { payerAmount, appChainAmount }
+  const calculateTargetedSplit = useCallback((
+    depositAmount: bigint,
+    currentMessaging: bigint,
+    currentGas: bigint,
+    targetMessagingPercent: bigint = 100n - GAS_RESERVE_CONSTANTS.defaultGasRatioPercent
+  ) => {
+    const targetGasPercent = 100n - targetMessagingPercent
+
+    // Calculate what totals will be after deposit
+    const totalAfter = currentMessaging + currentGas + depositAmount
+
+    // Calculate target balances
+    const targetMessaging = (totalAfter * targetMessagingPercent) / 100n
+    const targetGas = (totalAfter * targetGasPercent) / 100n
+
+    // Calculate how much each bucket needs to reach target
+    const messagingDelta = targetMessaging > currentMessaging
+      ? targetMessaging - currentMessaging
+      : 0n
+    const gasDelta = targetGas > currentGas
+      ? targetGas - currentGas
+      : 0n
+
+    // If messaging is already over target, all goes to gas
+    if (messagingDelta === 0n) {
+      return { payerAmount: 0n, appChainAmount: depositAmount }
+    }
+
+    // If gas is already over target, all goes to messaging
+    if (gasDelta === 0n) {
+      return { payerAmount: depositAmount, appChainAmount: 0n }
+    }
+
+    // Both need funds - deltas should sum to depositAmount
+    // (math guarantees this when both are positive)
+    return { payerAmount: messagingDelta, appChainAmount: gasDelta }
   }, [])
 
   const deposit = useCallback(
-    async (amountString: string, gasRatioPercent: bigint = GAS_RESERVE_CONSTANTS.defaultGasRatioPercent) => {
+    async (
+      amountString: string,
+      currentMessaging: bigint,
+      currentGas: bigint
+    ) => {
       if (!address || !walletClient) {
         setError(new Error('Wallet not connected'))
         return
@@ -76,8 +116,12 @@ export function useDeposit() {
         return
       }
 
-      // Calculate the split
-      const { payerAmount, appChainAmount } = calculateSplit(amount, gasRatioPercent)
+      // Calculate the targeted split based on current balances
+      const { payerAmount, appChainAmount } = calculateTargetedSplit(
+        amount,
+        currentMessaging,
+        currentGas
+      )
 
       setStatus('signing')
       setError(null)
@@ -141,7 +185,7 @@ export function useDeposit() {
         }
       }
     },
-    [address, walletClient, balance, writeContract, calculateSplit]
+    [address, walletClient, balance, writeContract, calculateTargetedSplit]
   )
 
   // Track confirming state
@@ -166,8 +210,9 @@ export function useDeposit() {
 
   return {
     deposit,
-    calculateSplit,
-    defaultGasRatioPercent: GAS_RESERVE_CONSTANTS.defaultGasRatioPercent,
+    calculateTargetedSplit,
+    targetMessagingPercent: 100n - GAS_RESERVE_CONSTANTS.defaultGasRatioPercent,
+    targetGasPercent: GAS_RESERVE_CONSTANTS.defaultGasRatioPercent,
     status,
     error,
     isPending: isPending || isConfirming || status === 'signing',

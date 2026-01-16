@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAccount, useSwitchChain } from 'wagmi'
 import { baseSepolia } from 'wagmi/chains'
 import { formatUnits } from 'viem'
@@ -13,6 +13,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useDeposit } from '@/hooks/useDeposit'
+import { usePayerBalance } from '@/hooks/usePayerBalance'
+import { useGasReserveBalance } from '@/hooks/useGasReserveBalance'
 import { Loader2, CheckCircle2, XCircle, ArrowDownToLine, PenLine, MessageSquare, Fuel, Info } from 'lucide-react'
 import { TOKENS, GATEWAY_PAYER_ADDRESS } from '@/lib/constants'
 import {
@@ -30,8 +32,9 @@ export function DepositDialog() {
 
   const {
     deposit,
-    calculateSplit,
-    defaultGasRatioPercent,
+    calculateTargetedSplit,
+    targetMessagingPercent,
+    targetGasPercent,
     status,
     error,
     isPending,
@@ -39,10 +42,14 @@ export function DepositDialog() {
     reset,
   } = useDeposit()
 
+  // Get current balances to calculate targeted split
+  const { rawBalance: currentMessagingBalance } = usePayerBalance()
+  const { balance: currentGasBalance } = useGasReserveBalance()
+
   const isWrongNetwork = chainId !== baseSepolia.id
   const hasPayerAddress = !!GATEWAY_PAYER_ADDRESS
 
-  // Format balance for display
+  // Format wallet balance for display
   const rawBalance = balance
     ? parseFloat(formatUnits(balance, TOKENS.underlyingFeeToken.decimals))
     : 0
@@ -58,13 +65,29 @@ export function DepositDialog() {
   const maxAmount = rawBalance
   const isValidAmount = parsedAmount > 0 && parsedAmount <= maxAmount
 
-  // Calculate split preview
-  const amountBigInt = parsedAmount > 0
-    ? BigInt(Math.floor(parsedAmount * 10 ** TOKENS.underlyingFeeToken.decimals))
-    : 0n
-  const { payerAmount, appChainAmount } = calculateSplit(amountBigInt, defaultGasRatioPercent)
-  const messagingPercent = 100n - defaultGasRatioPercent
-  const gasPercent = defaultGasRatioPercent
+  // Calculate targeted split based on current balances
+  const splitPreview = useMemo(() => {
+    if (parsedAmount <= 0) {
+      return { payerAmount: 0n, appChainAmount: 0n, messagingPercent: 0, gasPercent: 0 }
+    }
+
+    const amountBigInt = BigInt(Math.floor(parsedAmount * 10 ** TOKENS.underlyingFeeToken.decimals))
+    const currentMessaging = currentMessagingBalance ?? 0n
+    const currentGas = currentGasBalance ?? 0n
+
+    const { payerAmount, appChainAmount } = calculateTargetedSplit(
+      amountBigInt,
+      currentMessaging,
+      currentGas
+    )
+
+    // Calculate actual percentages for this deposit
+    const total = payerAmount + appChainAmount
+    const messagingPercent = total > 0n ? Math.round(Number(payerAmount * 100n / total)) : 0
+    const gasPercent = total > 0n ? Math.round(Number(appChainAmount * 100n / total)) : 0
+
+    return { payerAmount, appChainAmount, messagingPercent, gasPercent }
+  }, [parsedAmount, currentMessagingBalance, currentGasBalance, calculateTargetedSplit])
 
   // Format split amounts
   const formatSplitAmount = (amt: bigint) => {
@@ -87,7 +110,7 @@ export function DepositDialog() {
 
   const handleDeposit = () => {
     if (!isValidAmount) return
-    deposit(amount)
+    deposit(amount, currentMessagingBalance ?? 0n, currentGasBalance ?? 0n)
   }
 
   const handleMax = () => {
@@ -231,15 +254,15 @@ export function DepositDialog() {
           {parsedAmount > 0 && (
             <div className="rounded-md border bg-muted/30 p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground font-medium">Deposit Split</span>
+                <span className="text-xs text-muted-foreground font-medium">Deposit Allocation</span>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent side="left" className="max-w-xs">
                     <p className="text-xs">
-                      Your deposit is split between messaging fees (for sending messages)
-                      and gas reserve (for group operations like adding members).
+                      Split is calculated to target {targetMessagingPercent.toString()}% messaging / {targetGasPercent.toString()}% gas
+                      across your total balance. Current allocation adjusts the split accordingly.
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -249,17 +272,17 @@ export function DepositDialog() {
                   <div className="flex items-center gap-1.5">
                     <MessageSquare className="h-3.5 w-3.5 text-emerald-500" />
                     <span>Messaging</span>
-                    <span className="text-xs text-muted-foreground">({messagingPercent.toString()}%)</span>
+                    <span className="text-xs text-muted-foreground">({splitPreview.messagingPercent}%)</span>
                   </div>
-                  <span className="font-mono text-sm">{formatSplitAmount(payerAmount)}</span>
+                  <span className="font-mono text-sm">{formatSplitAmount(splitPreview.payerAmount)}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-1.5">
                     <Fuel className="h-3.5 w-3.5 text-zinc-500" />
                     <span>Gas Reserve</span>
-                    <span className="text-xs text-muted-foreground">({gasPercent.toString()}%)</span>
+                    <span className="text-xs text-muted-foreground">({splitPreview.gasPercent}%)</span>
                   </div>
-                  <span className="font-mono text-sm">{formatSplitAmount(appChainAmount)}</span>
+                  <span className="font-mono text-sm">{formatSplitAmount(splitPreview.appChainAmount)}</span>
                 </div>
               </div>
             </div>

@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 export function BalanceDisplay() {
   const {
     formattedMessages,
-    formattedBalance,
+    rawBalance: messagingBalance,
     warningLevel,
     isLoading,
     error,
@@ -22,9 +22,21 @@ export function BalanceDisplay() {
 
   const {
     formattedOperations,
+    balance: gasBalance,
+    formattedBalance: formattedGasBalance,
     warningLevel: gasWarningLevel,
     isLoading: isGasLoading,
   } = useGasReserveBalance()
+
+  // Calculate combined total balance (both are in 6 decimals)
+  const totalBalance = (messagingBalance ?? 0n) + (gasBalance ?? 0n)
+  const totalBalanceDollars = Number(totalBalance) / 1_000_000
+  const formattedTotalBalance = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  }).format(totalBalanceDollars)
 
   // No payer address configured
   if (!GATEWAY_PAYER_ADDRESS) {
@@ -125,11 +137,32 @@ export function BalanceDisplay() {
         </Tooltip>
       </TooltipProvider>
 
-      {/* Balance row */}
-      <div className="flex items-center justify-between pt-1 border-t border-zinc-800">
-        <span className="text-xs text-zinc-500 font-mono">mUSD Balance</span>
-        <span className="text-xs text-zinc-300 font-mono tabular-nums">{formattedBalance}</span>
-      </div>
+      {/* Balance row - combined total */}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center justify-between pt-1 border-t border-zinc-800 cursor-help">
+              <span className="text-xs text-zinc-500 font-mono">Total Balance</span>
+              <span className="text-xs text-zinc-300 font-mono tabular-nums">{formattedTotalBalance}</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="max-w-xs">
+            <div className="space-y-1.5 text-xs">
+              <p className="font-medium">Balance Breakdown</p>
+              <div className="space-y-0.5 text-muted-foreground">
+                <div className="flex justify-between gap-4">
+                  <span>Messaging (Base):</span>
+                  <span className="font-mono">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(Number(messagingBalance ?? 0n) / 1_000_000)}</span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span>Gas Reserve (Appchain):</span>
+                  <span className="font-mono">{formattedGasBalance}</span>
+                </div>
+              </div>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       {/* Warning */}
       {warningLevel === 'critical' && (
