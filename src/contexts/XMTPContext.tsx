@@ -191,6 +191,13 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
       detectedWalletType = walletTypeInfo
       setWalletTypeInfo(walletTypeInfo)
 
+      // Fail fast for known unsupported wallet types
+      if (walletTypeInfo.type === 'SCW' && isCoinbaseWallet(connectorId)) {
+        throw new Error(
+          'COINBASE_SMART_WALLET_UNSUPPORTED: Coinbase Smart Wallets use passkey signatures which are not yet supported by XMTP outside of the Base app.'
+        )
+      }
+
       const dbPath = `xmtp-mwt-wallet-${address.toLowerCase()}`
 
       const newClient = await Client.create(signer, {
