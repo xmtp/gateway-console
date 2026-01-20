@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from 'react'
 import { Client, LogLevel } from '@xmtp/browser-sdk'
-import { createEphemeralSigner, createSignerForWallet } from '@/lib/xmtp-signer'
+import { createEphemeralSigner, createSignerForWallet, isCoinbaseWallet } from '@/lib/xmtp-signer'
 import { GATEWAY_URL, USE_GATEWAY, XMTP_NETWORK } from '@/lib/constants'
 import type { EphemeralUser } from '@/types/user'
 import type { WalletTypeInfo } from '@/types/wallet-type'
@@ -57,6 +57,21 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
   // Track if we're in the middle of an operation to prevent concurrent calls
   const operationInProgress = useRef(false)
 
+  // Helper to close existing client (OPFS only allows one client at a time)
+  const closeExistingClient = useCallback(async () => {
+    if (clientRef.current) {
+      try {
+        await clientRef.current.close()
+      } catch (e) {
+        console.warn('[XMTP] Error closing previous client:', e)
+      }
+      clientRef.current = null
+      setClient(null)
+      // Small delay for OPFS cleanup
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+  }, [])
+
   const disconnect = useCallback(async () => {
     if (clientRef.current) {
       try {
@@ -92,17 +107,7 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
     console.log('[XMTP] Creating client for', user.name, '...')
 
     try {
-      // Close existing client before creating new one (OPFS limitation)
-      if (clientRef.current) {
-        try {
-          await clientRef.current.close()
-        } catch (e) {
-          console.warn('[XMTP] Error closing previous client:', e)
-        }
-        clientRef.current = null
-        setClient(null)
-        await new Promise(resolve => setTimeout(resolve, 100))
-      }
+      await closeExistingClient()
 
       const signer = createEphemeralSigner(user.privateKey)
       const dbPath = `xmtp-mwt-${user.id}`
@@ -143,7 +148,7 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
       setIsConnecting(false)
       operationInProgress.current = false
     }
-  }, [activeUserId])
+  }, [activeUserId, closeExistingClient])
 
   const initializeWithWallet = useCallback(async (
     walletClient: WalletClient,
@@ -170,17 +175,7 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
     console.log('[XMTP] Creating client for wallet', address.slice(0, 10) + '...', '...')
 
     try {
-      // Close existing client before creating new one (OPFS limitation)
-      if (clientRef.current) {
-        try {
-          await clientRef.current.close()
-        } catch (e) {
-          console.warn('[XMTP] Error closing previous client:', e)
-        }
-        clientRef.current = null
-        setClient(null)
-        await new Promise(resolve => setTimeout(resolve, 100))
-      }
+      await closeExistingClient()
 
       // Detect wallet type and create appropriate signer
       const { signer, walletTypeInfo: detectedWalletType } = await createSignerForWallet(
@@ -219,9 +214,32 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
       setActiveUserId(WALLET_USER_ID)
       setInboxId(newClient.inboxId ?? null)
     } catch (e) {
-      const err = e instanceof Error ? e : new Error('Failed to initialize XMTP client with wallet')
-      console.error('[XMTP] Client creation failed:', err.message)
-      setError(err)
+      const originalError = e instanceof Error ? e : new Error('Failed to initialize XMTP client with wallet')
+      console.error('[XMTP] Client creation failed:', originalError.message)
+
+      // Provide more helpful error messages for common SCW issues
+      let userFriendlyError = originalError
+      const errorMsg = originalError.message.toLowerCase()
+
+      if (errorMsg.includes('signature') && (errorMsg.includes('valid') || errorMsg.includes('verif'))) {
+        // SCW signature validation failed - provide helpful context
+        console.error('[XMTP] SCW signature validation failed.')
+        console.error('  - Connected chain:', chainId)
+        console.error('  - Connector:', connectorId)
+
+        if (isCoinbaseWallet(connectorId)) {
+          userFriendlyError = new Error(
+            'COINBASE_SMART_WALLET_UNSUPPORTED: Coinbase Smart Wallets use passkey signatures which are not yet supported by XMTP outside of the Base app.'
+          )
+        } else {
+          userFriendlyError = new Error(
+            `Smart wallet signature verification failed. XMTP may not fully support this wallet type yet. ` +
+            `Try using an EOA wallet (like MetaMask) instead.`
+          )
+        }
+      }
+
+      setError(userFriendlyError)
       setClient(null)
       clientRef.current = null
       setActiveUserId(null)
@@ -232,7 +250,7 @@ export function XMTPProvider({ children }: XMTPProviderProps) {
       setIsConnecting(false)
       operationInProgress.current = false
     }
-  }, [activeUserId])
+  }, [activeUserId, closeExistingClient])
 
   return (
     <XMTPContext.Provider

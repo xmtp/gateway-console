@@ -2,18 +2,29 @@ import { type Signer, IdentifierKind } from '@xmtp/browser-sdk'
 import { privateKeyToAccount } from 'viem/accounts'
 import { toBytes } from 'viem'
 import type { Hex, WalletClient, Address, PublicClient } from 'viem'
-import type { WalletType, WalletTypeInfo } from '@/types/wallet-type'
+import type { WalletTypeInfo } from '@/types/wallet-type'
 
 /** EIP-7702 delegation designator prefix */
 const EIP7702_PREFIX = '0xef0100'
 
-/** Known smart contract wallet connector IDs */
-const SCW_CONNECTOR_IDS = [
+/** Coinbase Smart Wallet connector IDs */
+export const COINBASE_CONNECTOR_IDS = [
+  'coinbase',
   'coinbaseWalletSDK',
   'com.coinbase.wallet',
+] as const
+
+/** Known smart contract wallet connector IDs */
+const SCW_CONNECTOR_IDS = [
+  ...COINBASE_CONNECTOR_IDS,
   'safe',
   'app.safe',
 ]
+
+/** Check if a connector is a Coinbase Smart Wallet */
+export function isCoinbaseWallet(connectorId: string): boolean {
+  return COINBASE_CONNECTOR_IDS.includes(connectorId as typeof COINBASE_CONNECTOR_IDS[number])
+}
 
 /**
  * Creates an XMTP signer from an ephemeral private key.
@@ -58,8 +69,7 @@ export function createWalletSigner(walletClient: WalletClient, address: Address)
 
 /**
  * Creates an XMTP signer for Smart Contract Wallets (SCW).
- * SCW signers require a chainId for proper signature verification.
- * Used for EIP-4337 wallets (Coinbase Smart Wallet, Safe) and EIP-7702 delegated EOAs.
+ * SCW signers require a chainId for EIP-1271 signature verification.
  */
 export function createSCWSigner(
   walletClient: WalletClient,
@@ -84,10 +94,10 @@ export function createSCWSigner(
 }
 
 /**
- * Detects the wallet type by checking on-chain bytecode.
+ * Detects the wallet type by checking connector ID and on-chain bytecode.
  * - EOA: No bytecode (empty)
  * - EIP-7702: Bytecode starts with 0xef0100 (delegation designator)
- * - SCW: Any other bytecode (smart contract wallet)
+ * - SCW: Known connector ID or has bytecode
  */
 export async function detectWalletType(
   publicClient: PublicClient,
@@ -135,8 +145,6 @@ export async function createSignerForWallet(
   chainId: number
 ): Promise<{ signer: Signer; walletTypeInfo: WalletTypeInfo }> {
   const walletTypeInfo = await detectWalletType(publicClient, address, connectorId, chainId)
-
-  console.log('[XMTP] Detected wallet type:', walletTypeInfo)
 
   let signer: Signer
   if (walletTypeInfo.type === 'EOA') {

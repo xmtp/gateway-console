@@ -54,7 +54,8 @@ export function ConnectedWalletCard() {
     if (!walletClient || !publicClient || isActive || isConnecting) return
     selectUser('') // Clear ephemeral selection immediately
     const connectorId = connector?.id ?? 'unknown'
-    await initializeWithWallet(walletClient, publicClient, address, connectorId, chainId)
+    // Cast publicClient to satisfy type checker - wagmi/viem type incompatibility
+    await initializeWithWallet(walletClient, publicClient as Parameters<typeof initializeWithWallet>[1], address, connectorId, chainId)
     // Navigate to conversations on mobile
     if (isMobile) {
       showConversations()

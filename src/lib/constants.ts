@@ -98,6 +98,8 @@ export const SETTLEMENT_CHAIN_RPC_URL =
   import.meta.env.VITE_SETTLEMENT_CHAIN_RPC_URL || 'https://sepolia.base.org'
 export const MAINNET_RPC_URL =
   import.meta.env.VITE_MAINNET_RPC_URL || 'https://eth.llamarpc.com'
+export const BASE_MAINNET_RPC_URL =
+  import.meta.env.VITE_BASE_MAINNET_RPC_URL || 'https://mainnet.base.org'
 
 // localStorage keys
 export const STORAGE_KEYS = {

@@ -9,8 +9,8 @@ import {
   phantomWallet,
 } from '@rainbow-me/rainbowkit/wallets'
 import { createConfig, http } from 'wagmi'
-import { baseSepolia, mainnet } from 'wagmi/chains'
-import { SETTLEMENT_CHAIN_RPC_URL, MAINNET_RPC_URL } from './constants'
+import { base, baseSepolia, mainnet } from 'wagmi/chains'
+import { SETTLEMENT_CHAIN_RPC_URL, MAINNET_RPC_URL, BASE_MAINNET_RPC_URL } from './constants'
 import { xmtpAppchain } from './chains'
 
 const walletConnectProjectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
@@ -47,9 +47,10 @@ const connectors = connectorsForWallets(
 
 export const config = createConfig({
   connectors,
-  chains: [baseSepolia, mainnet, xmtpAppchain],
+  chains: [base, baseSepolia, mainnet, xmtpAppchain],
   transports: {
     [baseSepolia.id]: http(SETTLEMENT_CHAIN_RPC_URL),
+    [base.id]: http(BASE_MAINNET_RPC_URL),
     [mainnet.id]: http(MAINNET_RPC_URL),
     [xmtpAppchain.id]: http(xmtpAppchain.rpcUrls.default.http[0]),
   },
