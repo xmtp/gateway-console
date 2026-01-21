@@ -1,7 +1,6 @@
-import { useEffect, useRef } from 'react'
 import { usePayerBalance } from '@/hooks/usePayerBalance'
 import { useGasReserveBalance } from '@/hooks/useGasReserveBalance'
-import { usePendingDecrement, resetDecrement } from '@/hooks/useMessageCountDecrement'
+import { usePendingDecrement } from '@/hooks/useMessageCountDecrement'
 import { GATEWAY_PAYER_ADDRESS } from '@/lib/constants'
 import { CopyableAddress } from '@/components/ui/copyable-address'
 import { Loader2, AlertTriangle } from 'lucide-react'
@@ -29,16 +28,8 @@ export function BalanceDisplay() {
   } = useGasReserveBalance()
 
   // Get pending decrements from message sends
+  // Reset is handled in usePayerBalance when real balance updates
   const pendingDecrement = usePendingDecrement()
-  const prevMessagesRef = useRef(messagesAvailable)
-
-  // Reset pending decrement when real balance updates
-  useEffect(() => {
-    if (messagesAvailable !== prevMessagesRef.current) {
-      resetDecrement()
-      prevMessagesRef.current = messagesAvailable
-    }
-  }, [messagesAvailable])
 
   // Display value accounts for pending decrements
   const displayMessages = Math.max(0, messagesAvailable - pendingDecrement)

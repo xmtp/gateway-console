@@ -1,8 +1,10 @@
+import { useEffect, useRef } from 'react'
 import { useReadContract } from 'wagmi'
 import { baseSepolia } from 'wagmi/chains'
 import { PayerRegistryAbi } from '@/abi/PayerRegistry'
 import { CONTRACTS, GATEWAY_PAYER_ADDRESS } from '@/lib/constants'
 import { calculateMessagesAvailable, getBalanceWarningLevel } from '@/lib/messageCosting'
+import { resetDecrement } from './useMessageCountDecrement'
 
 /**
  * Hook to fetch and calculate the payer's messaging balance
@@ -32,6 +34,16 @@ export function usePayerBalance() {
   const safeBalance = balance && balance > 0n ? balance : 0n
   const calculation = calculateMessagesAvailable(safeBalance)
   const warningLevel = getBalanceWarningLevel(calculation.messagesAvailable)
+
+  // Reset optimistic decrement when real balance updates
+  // This is done here (not in a component) so it's independent of mount state
+  const prevMessagesRef = useRef(calculation.messagesAvailable)
+  useEffect(() => {
+    if (calculation.messagesAvailable !== prevMessagesRef.current) {
+      resetDecrement()
+      prevMessagesRef.current = calculation.messagesAvailable
+    }
+  }, [calculation.messagesAvailable])
 
   return {
     // Raw balance (int104 from contract, can be negative if in debt)
