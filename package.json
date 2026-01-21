@@ -12,7 +12,9 @@
     "test:e2e": "node tests/e2e/test-runner.js",
     "test:e2e:verbose": "node tests/e2e/test-runner.js --verbose",
     "test:e2e:wallet": "node tests/e2e/test-runner.js --with-wallet --verbose",
-    "test:e2e:shell": "bash tests/e2e/run-tests.sh"
+    "test:e2e:shell": "bash tests/e2e/run-tests.sh",
+    "test:e2e:rainbowkit": "node tests/e2e/test-runner.js --with-wallet --test rainbowkit-modal --verbose",
+    "test:e2e:multi-wallet": "node tests/e2e/test-runner.js --with-wallet --test multi-wallet-inject --verbose"
   },
   "dependencies": {
     "@coinbase/wallet-sdk": "^4.3.7",

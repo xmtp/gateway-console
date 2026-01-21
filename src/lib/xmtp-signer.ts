@@ -1,8 +1,10 @@
 import { type Signer, IdentifierKind } from '@xmtp/browser-sdk'
 import { privateKeyToAccount } from 'viem/accounts'
-import { toBytes } from 'viem'
+import { toBytes, createPublicClient, http } from 'viem'
+import { base } from 'viem/chains'
 import type { Hex, WalletClient, Address, PublicClient } from 'viem'
 import type { WalletTypeInfo } from '@/types/wallet-type'
+import { BASE_MAINNET_RPC_URL } from './constants'
 
 /** EIP-7702 delegation designator prefix */
 const EIP7702_PREFIX = '0xef0100'
@@ -86,14 +88,29 @@ export function createSCWSigner(
   }
 }
 
+/** Classifies bytecode into wallet type. Returns null if no bytecode (EOA). */
+function classifyBytecode(bytecode: Hex | undefined):
+  | { type: 'SCW' }
+  | { type: 'EIP7702'; delegateAddress: Address }
+  | null {
+  if (!bytecode || bytecode === '0x') {
+    return null
+  }
+  if (bytecode.toLowerCase().startsWith(EIP7702_PREFIX)) {
+    const delegateAddress = ('0x' + bytecode.slice(8, 48)) as Address
+    return { type: 'EIP7702', delegateAddress }
+  }
+  return { type: 'SCW' }
+}
+
 /**
  * Detects the wallet type by checking on-chain bytecode.
  * - EOA: No bytecode (empty)
  * - EIP-7702: Bytecode starts with 0xef0100 (delegation designator)
  * - SCW: Has bytecode (smart contract wallet like Coinbase Smart Wallet, Safe)
  *
- * Note: We always check bytecode rather than relying on connector ID because
- * wallets like Coinbase support both EOAs and Smart Wallets.
+ * For Coinbase Wallet, we also check Base mainnet since Smart Wallets are
+ * typically deployed there first (even if user is on a different chain).
  */
 export async function detectWalletType(
   publicClient: PublicClient,
@@ -102,22 +119,33 @@ export async function detectWalletType(
   chainId: number
 ): Promise<WalletTypeInfo> {
   try {
+    // Check bytecode on connected chain first
     const bytecode = await publicClient.getCode({ address })
+    const result = classifyBytecode(bytecode)
 
-    // No bytecode = EOA (even if using Coinbase Wallet connector)
-    if (!bytecode || bytecode === '0x') {
-      return { type: 'EOA', connectorId, chainId }
+    if (result) {
+      return { ...result, connectorId, chainId }
     }
 
-    // Check for EIP-7702 delegation prefix
-    if (bytecode.toLowerCase().startsWith(EIP7702_PREFIX)) {
-      // Extract delegate address from bytecode (20 bytes after prefix)
-      const delegateAddress = ('0x' + bytecode.slice(8, 48)) as Address
-      return { type: 'EIP7702', connectorId, chainId, delegateAddress }
+    // For Coinbase Wallet, also check Base mainnet where Smart Wallets are typically deployed
+    if (isCoinbaseWallet(connectorId) && chainId !== base.id) {
+      try {
+        const baseClient = createPublicClient({
+          chain: base,
+          transport: http(BASE_MAINNET_RPC_URL),
+        })
+        const baseBytecode = await baseClient.getCode({ address })
+        const baseResult = classifyBytecode(baseBytecode)
+
+        if (baseResult) {
+          return { ...baseResult, connectorId, chainId }
+        }
+      } catch {
+        // Base RPC failure shouldn't break detection - fall through to EOA
+      }
     }
 
-    // Has bytecode but not EIP-7702 = Smart Contract Wallet
-    return { type: 'SCW', connectorId, chainId }
+    return { type: 'EOA', connectorId, chainId }
   } catch (error) {
     console.warn('[XMTP] Failed to detect wallet type, defaulting to EOA:', error)
     return { type: 'EOA', connectorId, chainId }
