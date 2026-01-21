@@ -2,7 +2,7 @@ import '@rainbow-me/rainbowkit/styles.css'
 import { connectorsForWallets } from '@rainbow-me/rainbowkit'
 import {
   metaMaskWallet,
-  coinbaseWallet,
+  baseAccount,
   walletConnectWallet,
   rainbowWallet,
   uniswapWallet,
@@ -28,7 +28,7 @@ const connectors = connectorsForWallets(
       groupName: 'Popular',
       wallets: [
         metaMaskWallet,
-        coinbaseWallet,
+        baseAccount,
         uniswapWallet,
         rainbowWallet,
         phantomWallet,

@@ -3,7 +3,7 @@ import { useXMTP } from '@/contexts'
 import { Loader2, ExternalLink, AlertTriangle, Smartphone } from 'lucide-react'
 
 const INBOX_TOOLS_URL = 'https://xmtp.chat/inbox-tools'
-const BASE_APP_URL = 'https://base.org/names'
+const BASE_APP_URL = 'https://www.coinbase.com/wallet/downloads'
 
 // Color themes for error cards
 const errorColors = {
@@ -80,7 +80,7 @@ export function CoinbaseSmartWalletError() {
     <ErrorCard
       icon={<Smartphone className="w-3.5 h-3.5 text-blue-400" />}
       title="Use the Base app"
-      description="Coinbase Smart Wallet signatures are only compatible with XMTP in the Base app. Use a regular wallet (MetaMask, etc.) or message from Base."
+      description="Base Smart Wallet signatures are only compatible with XMTP in the Base app. Use a regular wallet (MetaMask, etc.) or message from Base."
       buttonText="Open Base App"
       buttonUrl={BASE_APP_URL}
       color="blue"
