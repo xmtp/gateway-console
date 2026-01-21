@@ -11,6 +11,7 @@ export function AnimatedMessageCounter({ value, className }: AnimatedMessageCoun
   const [isAnimating, setIsAnimating] = useState(false)
   const previousValue = useRef(value)
   const animationRef = useRef<number | null>(null)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const prev = previousValue.current
@@ -20,6 +21,10 @@ export function AnimatedMessageCounter({ value, className }: AnimatedMessageCoun
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current)
     }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+    }
+    setIsAnimating(false)
 
     // If value decreased, animate down with visual effect
     if (diff < 0) {
@@ -44,7 +49,7 @@ export function AnimatedMessageCounter({ value, className }: AnimatedMessageCoun
         } else {
           setDisplayValue(value)
           // End pulse animation after the number finishes
-          setTimeout(() => setIsAnimating(false), 200)
+          timeoutRef.current = setTimeout(() => setIsAnimating(false), 200)
         }
       }
 
@@ -59,6 +64,9 @@ export function AnimatedMessageCounter({ value, className }: AnimatedMessageCoun
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current)
+      }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
       }
     }
   }, [value])
