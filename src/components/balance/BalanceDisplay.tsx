@@ -1,5 +1,6 @@
 import { usePayerBalance } from '@/hooks/usePayerBalance'
 import { useGasReserveBalance } from '@/hooks/useGasReserveBalance'
+import { usePendingDecrement } from '@/hooks/useMessageCountDecrement'
 import { GATEWAY_PAYER_ADDRESS } from '@/lib/constants'
 import { CopyableAddress } from '@/components/ui/copyable-address'
 import { Loader2, AlertTriangle } from 'lucide-react'
@@ -10,10 +11,11 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { AnimatedMessageCounter } from './AnimatedMessageCounter'
 
 export function BalanceDisplay() {
   const {
-    formattedMessages,
+    messagesAvailable,
     rawBalance: messagingBalance,
     warningLevel,
     isLoading,
@@ -24,6 +26,13 @@ export function BalanceDisplay() {
     balance: gasBalance,
     formattedBalance: formattedGasBalance,
   } = useGasReserveBalance()
+
+  // Get pending decrements from message sends
+  // Reset is handled in usePayerBalance when real balance updates
+  const pendingDecrement = usePendingDecrement()
+
+  // Display value accounts for pending decrements
+  const displayMessages = Math.max(0, messagesAvailable - pendingDecrement)
 
   // Calculate combined total balance
   // Note: messagingBalance is 6 decimals (xUSD token), gasBalance is 18 decimals (native)
@@ -70,29 +79,60 @@ export function BalanceDisplay() {
   return (
     <div className="space-y-2">
       {/* App wallet address */}
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-zinc-500 font-mono">Address</span>
-        <CopyableAddress address={GATEWAY_PAYER_ADDRESS} className="text-[10px] text-zinc-400" />
-      </div>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center justify-between cursor-help">
+              <span className="text-xs text-zinc-500 font-mono">Address</span>
+              <CopyableAddress address={GATEWAY_PAYER_ADDRESS} className="text-[10px] text-zinc-400" />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="right" sideOffset={22} className="max-w-xs">
+            <div className="space-y-2 text-xs">
+              <p className="font-medium">Gateway Payer Address</p>
+              <p className="text-muted-foreground">
+                This wallet pays messaging fees on behalf of your app's users. Use the Deposit button to add funds to your messaging balance.
+              </p>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       {/* Messages meter */}
-      <div className="space-y-1">
-        <div className="flex items-baseline justify-between">
-          <span className="text-xs text-zinc-500 font-mono">Messages</span>
-          {warningLevel !== 'none' && (
-            <AlertTriangle className="h-3 w-3 text-amber-400" />
-          )}
-        </div>
-        <div className="flex items-baseline gap-1.5">
-          <span className={cn(
-            'text-2xl font-mono font-bold tabular-nums',
-            warningLevel !== 'none' ? 'text-zinc-500' : 'text-emerald-400'
-          )}>
-            {formattedMessages}
-          </span>
-          <span className="text-xs text-zinc-500 font-mono">available</span>
-        </div>
-      </div>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="space-y-1 cursor-help">
+              <div className="flex items-baseline justify-between">
+                <span className="text-xs text-zinc-500 font-mono">Messages</span>
+                {warningLevel !== 'none' && (
+                  <AlertTriangle className="h-3 w-3 text-amber-400" />
+                )}
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <AnimatedMessageCounter
+                  value={displayMessages}
+                  className={cn(
+                    warningLevel !== 'none' ? 'text-zinc-500' : 'text-emerald-400'
+                  )}
+                />
+                <span className="text-xs text-zinc-500 font-mono">available</span>
+              </div>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="right" sideOffset={22} className="max-w-xs">
+            <div className="space-y-2 text-xs">
+              <p className="font-medium">Estimated Messages</p>
+              <p className="text-muted-foreground">
+                This is an estimate based on your current balance and average message costs.
+              </p>
+              <p className="text-[10px] text-zinc-500 pt-1 border-t border-white/10">
+                Message fees are tracked by nodes as unsettled usage, then periodically settled on-chain. Your actual available messages may vary slightly until settlement completes.
+              </p>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       {/* mUSD Balance row */}
       <TooltipProvider>

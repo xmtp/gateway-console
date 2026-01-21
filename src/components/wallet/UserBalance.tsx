@@ -4,6 +4,12 @@ import { baseSepolia } from 'wagmi/chains'
 import { MockUnderlyingFeeTokenAbi } from '@/abi/MockUnderlyingFeeToken'
 import { TOKENS } from '@/lib/constants'
 import { Loader2 } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 export function UserBalance() {
   const { address, isConnected } = useAccount()
@@ -42,9 +48,23 @@ export function UserBalance() {
     : '$0.00'
 
   return (
-    <div className="flex items-center justify-between">
-      <span className="text-xs text-zinc-500 font-mono">mUSD Balance</span>
-      <span className="text-xs text-zinc-300 font-mono tabular-nums">{formattedBalance}</span>
-    </div>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex items-center justify-between cursor-help">
+            <span className="text-xs text-zinc-500 font-mono">mUSD Balance</span>
+            <span className="text-xs text-zinc-300 font-mono tabular-nums">{formattedBalance}</span>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="right" sideOffset={22} className="max-w-xs">
+          <div className="space-y-1 text-xs">
+            <p className="font-medium">Your Wallet Balance</p>
+            <p className="text-muted-foreground">
+              mUSD is a mock stablecoin on XMTP testnet. On mainnet, fees are paid in Base USDC.
+            </p>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }

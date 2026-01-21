@@ -2,6 +2,7 @@ import { useState, type KeyboardEvent } from 'react'
 import { useSendMessage } from '@/hooks/useConversations'
 import { useMessaging } from '@/contexts/MessagingContext'
 import { usePayerBalance } from '@/hooks/usePayerBalance'
+import { decrementMessageCount } from '@/hooks/useMessageCountDecrement'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MessageCostBadge } from './MessageCostBadge'
@@ -19,6 +20,8 @@ export function MessageInput() {
     const success = await sendMessage(selectedConversation, message.trim())
     if (success) {
       setMessage('')
+      // Immediately decrement the visual counter
+      decrementMessageCount()
       // Refetch balance after sending to update messages available
       refetchBalance()
     }
