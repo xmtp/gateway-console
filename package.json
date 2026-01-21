@@ -1,7 +1,8 @@
 {
-  "name": "token-messenger",
+  "name": "xmtp-gateway-console",
+  "description": "Learn how XMTP messaging fees work by using them",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
